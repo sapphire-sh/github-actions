@@ -6,9 +6,6 @@ on:
       image_name:
         required: true
         type: string
-      portainer_webhook:
-        required: true
-        type: string
 
 jobs:
   build-and-push:
@@ -64,4 +61,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trigger Portainer redeploy
-        run: curl -X POST "${{ inputs.portainer_webhook }}"
+        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
