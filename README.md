@@ -26,6 +26,8 @@ jobs:
 |------|----------|---------|-------------|
 | `image_name` | Yes | — | Docker image name (appended to registry host) |
 | `run_tests` | No | `false` | Run `npm ci && npm test` before building |
+| `build_image` | No | `true` | Build the Docker image |
+| `push_image` | No | `true` | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets) |
 
 **Secrets:**
 
