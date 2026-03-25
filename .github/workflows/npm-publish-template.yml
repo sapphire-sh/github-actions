@@ -103,6 +103,7 @@ jobs:
     with:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
       context: ${{ github.repository }}
+      job: publish
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
