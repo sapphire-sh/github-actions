@@ -38,6 +38,7 @@ jobs:
 | `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes | Tailscale OAuth client secret |
 | `PORTAINER_WEBHOOK_URL` | Yes | Portainer webhook to trigger redeploy |
 | `SLACK_WEBHOOK_URL` | No | Slack incoming webhook for build notifications |
+| `MATTERMOST_WEBHOOK_URL` | No | Mattermost incoming webhook for build notifications |
 
 **Jobs:**
 
