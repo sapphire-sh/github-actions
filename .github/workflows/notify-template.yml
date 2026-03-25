@@ -32,7 +32,18 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Parse workflow source ref
+        id: parse-ref
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          echo "repo=$(echo "$WORKFLOW_REF" | cut -d'/' -f1,2)" >> "$GITHUB_OUTPUT"
+          echo "ref=$(echo "$WORKFLOW_REF" | cut -d'@' -f2)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ steps.parse-ref.outputs.repo }}
+          ref: ${{ steps.parse-ref.outputs.ref }}
 
       - name: Prepare
         id: status
