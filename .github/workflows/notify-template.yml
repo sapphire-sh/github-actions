@@ -71,7 +71,10 @@ jobs:
         run: |
           [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
           [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
-          { echo 'payload<<PAYLOAD_EOF'; node .github/scripts/notify-build-payload.js; echo 'PAYLOAD_EOF'; } >> "$GITHUB_OUTPUT"
+          PAYLOAD=$(node .github/scripts/notify-build-payload.js)
+          echo "payload<<PAYLOAD_EOF" >> "$GITHUB_OUTPUT"
+          echo "$PAYLOAD" >> "$GITHUB_OUTPUT"
+          echo "PAYLOAD_EOF" >> "$GITHUB_OUTPUT"
 
       - name: Send Slack message
         if: steps.status.outputs.notify_slack == 'true'
