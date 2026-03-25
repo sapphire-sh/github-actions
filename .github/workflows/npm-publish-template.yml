@@ -99,7 +99,7 @@ jobs:
   notify:
     needs: [test, publish]
     if: always()
-    uses: sapphire-sh/github-actions/.github/workflows/notify-template.yml@main
+    uses: ./.github/workflows/notify-template.yml
     with:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
       context: ${{ github.repository }}
