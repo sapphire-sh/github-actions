@@ -12,7 +12,11 @@ on:
     secrets:
       SLACK_WEBHOOK_URL:
         required: false
-      MATTERMOST_WEBHOOK_URL:
+      MATTERMOST_CHANNEL_ID:
+        required: false
+      MATTERMOST_TOKEN:
+        required: false
+      MATTERMOST_URL:
         required: false
 
 permissions: {}
@@ -26,7 +30,9 @@ jobs:
       - name: Prepare
         id: status
         env:
-          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
+          MATTERMOST_CHANNEL_ID: ${{ secrets.MATTERMOST_CHANNEL_ID }}
+          MATTERMOST_URL: ${{ secrets.MATTERMOST_URL }}
           RESULT: ${{ inputs.result }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
@@ -40,7 +46,7 @@ jobs:
             echo "text=failed" >> "$GITHUB_OUTPUT"
           fi
           [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
-          [ -n "$MATTERMOST_WEBHOOK_URL" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
+          [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
 
       - name: Send Slack message
         if: steps.status.outputs.notify_slack == 'true'
@@ -57,11 +63,49 @@ jobs:
               }]
             }
 
+      - name: Start Mattermost proxy
+        if: steps.status.outputs.notify_mattermost == 'true'
+        env:
+          MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
+          MATTERMOST_CHANNEL_ID: ${{ secrets.MATTERMOST_CHANNEL_ID }}
+          MATTERMOST_URL: ${{ secrets.MATTERMOST_URL }}
+        run: |
+          python3 - <<'EOF' &
+          import http.server, json, urllib.request, urllib.error, os
+
+          class Handler(http.server.BaseHTTPRequestHandler):
+              def do_POST(self):
+                  body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                  payload = json.dumps({
+                      'channel_id': os.environ['MATTERMOST_CHANNEL_ID'],
+                      'props': {'attachments': body.get('attachments', [])}
+                  }).encode()
+                  req = urllib.request.Request(
+                      f"{os.environ['MATTERMOST_URL']}/api/v4/posts",
+                      data=payload,
+                      headers={
+                          'Authorization': f"Bearer {os.environ['MATTERMOST_TOKEN']}",
+                          'Content-Type': 'application/json'
+                      }
+                  )
+                  try:
+                      urllib.request.urlopen(req)
+                      self.send_response(200)
+                  except urllib.error.HTTPError as e:
+                      self.send_response(e.code)
+                  self.end_headers()
+              def log_message(self, *args): pass
+
+          http.server.HTTPServer(('127.0.0.1', 8765), Handler).serve_forever()
+          EOF
+          echo $! > /tmp/mm_proxy.pid
+          sleep 1
+
       - name: Send Mattermost message
         if: steps.status.outputs.notify_mattermost == 'true'
         uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
-          webhook: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          webhook: http://127.0.0.1:8765
           webhook-type: incoming-webhook
           payload: |
             {
@@ -71,3 +115,7 @@ jobs:
                 "footer": "${{ github.repository }} @ ${{ github.ref_name }}"
               }]
             }
+
+      - name: Stop Mattermost proxy
+        if: always() && steps.status.outputs.notify_mattermost == 'true'
+        run: kill "$(cat /tmp/mm_proxy.pid)" 2>/dev/null || true

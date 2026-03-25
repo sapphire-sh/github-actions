@@ -16,7 +16,11 @@ on:
         required: true
       SLACK_WEBHOOK_URL:
         required: false
-      MATTERMOST_WEBHOOK_URL:
+      MATTERMOST_TOKEN:
+        required: false
+      MATTERMOST_CHANNEL_ID:
+        required: false
+      MATTERMOST_URL:
         required: false
 
 permissions: {}
@@ -101,4 +105,6 @@ jobs:
       context: ${{ github.repository }}
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+      MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
+      MATTERMOST_CHANNEL_ID: ${{ secrets.MATTERMOST_CHANNEL_ID }}
+      MATTERMOST_URL: ${{ secrets.MATTERMOST_URL }}
