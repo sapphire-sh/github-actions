@@ -46,4 +46,43 @@ jobs:
 
 1. **test** — Runs `npm ci` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
 2. **build-and-push** — Connects to Tailscale, logs in to the private registry, builds the Docker image with Buildx, and pushes it. Tags: short SHA + `latest` on the default branch
-3. **notify** — Sends a Slack message with build status (skipped if `SLACK_WEBHOOK_URL` is not set)
+3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
+
+---
+
+### Shared npm Publish ([`.github/workflows/npm-publish-template.yml`](.github/workflows/npm-publish-template.yml))
+
+A reusable workflow for bumping, building, and publishing an npm package to both the npm registry and GitHub Packages.
+
+**Usage:**
+
+```yaml
+jobs:
+  publish:
+    uses: sapphire-sh/github-actions/.github/workflows/npm-publish-template.yml@main
+    with:
+      version_bump: minor   # optional, default: minor
+      run_tests: true       # optional, default: false
+    secrets: inherit
+```
+
+**Inputs:**
+
+| Name | Required | Default | Description |
+|------|----------|---------|-------------|
+| `version_bump` | No | `minor` | Version bump type passed to `npm version` (`major`, `minor`, `patch`) |
+| `run_tests` | No | `false` | Run `npm ci --ignore-scripts && npm test` before publishing |
+
+**Secrets:**
+
+| Name | Required | Description |
+|------|----------|-------------|
+| `NPM_TOKEN` | Yes | npm access token for publishing to the npm registry |
+| `SLACK_WEBHOOK_URL` | No | Slack incoming webhook for publish notifications |
+| `MATTERMOST_WEBHOOK_URL` | No | Mattermost incoming webhook for publish notifications |
+
+**Jobs:**
+
+1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
+2. **publish** — Bumps the version, pushes the commit and tag, publishes to npm (with OIDC provenance) and GitHub Packages, then creates a GitHub release with auto-generated notes
+3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)

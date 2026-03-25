@@ -1,0 +1,73 @@
+name: Shared Notification
+
+on:
+  workflow_call:
+    inputs:
+      result:
+        required: true
+        type: string
+      context:
+        required: true
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+      MATTERMOST_WEBHOOK_URL:
+        required: false
+
+permissions: {}
+
+jobs:
+  notify:
+    name: Notification
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Prepare
+        id: status
+        env:
+          MATTERMOST_WEBHOOK_URL: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          RESULT: ${{ inputs.result }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ "$RESULT" = "success" ]; then
+            echo "color=good" >> "$GITHUB_OUTPUT"
+            echo "emoji=:white_check_mark:" >> "$GITHUB_OUTPUT"
+            echo "text=succeeded" >> "$GITHUB_OUTPUT"
+          else
+            echo "color=danger" >> "$GITHUB_OUTPUT"
+            echo "emoji=:x:" >> "$GITHUB_OUTPUT"
+            echo "text=failed" >> "$GITHUB_OUTPUT"
+          fi
+          [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
+          [ -n "$MATTERMOST_WEBHOOK_URL" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack message
+        if: steps.status.outputs.notify_slack == 'true'
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "attachments": [{
+                "color": "${{ steps.status.outputs.color }}",
+                "text": "${{ steps.status.outputs.emoji }} *`${{ inputs.context }}` ${{ steps.status.outputs.text }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow>",
+                "footer": "${{ github.repository }} @ ${{ github.ref_name }}"
+              }]
+            }
+
+      - name: Send Mattermost message
+        if: steps.status.outputs.notify_mattermost == 'true'
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
+        with:
+          webhook: ${{ secrets.MATTERMOST_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "attachments": [{
+                "color": "${{ steps.status.outputs.color }}",
+                "text": "${{ steps.status.outputs.emoji }} *`${{ inputs.context }}` ${{ steps.status.outputs.text }}*\n<${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View workflow>",
+                "footer": "${{ github.repository }} @ ${{ github.ref_name }}"
+              }]
+            }
