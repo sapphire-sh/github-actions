@@ -9,9 +9,10 @@ const statusText = success ? 'succeeded' : 'failed';
 
 const runStartedAt = e('RUN_STARTED_AT');
 const diff = runStartedAt ? Math.floor((Date.now() - new Date(runStartedAt).getTime()) / 1000) : 0;
-const duration = runStartedAt
-  ? (diff >= 60 ? `${Math.floor(diff / 60)} min ${diff % 60} sec` : `${diff} sec`)
-  : 'n/a';
+let duration = 'n/a';
+if (runStartedAt) {
+  duration = diff >= 60 ? `${Math.floor(diff / 60)} min ${diff % 60} sec` : `${diff} sec`;
+}
 
 const sha = e('SHA');
 const authorEmail = e('COMMIT_AUTHOR_EMAIL');

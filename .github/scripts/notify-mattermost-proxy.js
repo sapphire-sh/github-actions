@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-const http = require('http');
-const https = require('https');
-const { URL } = require('url');
+const http = require('node:http');
+const https = require('node:https');
+const { URL } = require('node:url');
 
 const CHANNEL_ID = process.env.MATTERMOST_CHANNEL_ID;
 const TOKEN = process.env.MATTERMOST_TOKEN;
@@ -9,10 +9,18 @@ const target = new URL(`${process.env.MATTERMOST_URL}/api/v4/posts`);
 const transport = target.protocol === 'https:' ? https : http;
 
 http.createServer((req, res) => {
-  let body = '';
-  req.on('data', chunk => body += chunk);
+  const chunks = [];
+  req.on('data', chunk => chunks.push(chunk));
   req.on('end', () => {
-    const incoming = JSON.parse(body);
+    let incoming;
+    try {
+      incoming = JSON.parse(Buffer.concat(chunks).toString());
+    } catch {
+      res.writeHead(400);
+      res.end();
+      return;
+    }
+
     const payload = Buffer.from(JSON.stringify({
       channel_id: CHANNEL_ID,
       props: { attachments: incoming.attachments || [] },
@@ -28,7 +36,11 @@ http.createServer((req, res) => {
         'Content-Type': 'application/json',
         'Content-Length': payload.length,
       },
-    }, proxyRes => { res.writeHead(proxyRes.statusCode); res.end(); });
+    }, proxyRes => {
+      proxyRes.resume();
+      res.writeHead(proxyRes.statusCode);
+      res.end();
+    });
 
     proxyReq.on('error', () => { res.writeHead(500); res.end(); });
     proxyReq.end(payload);
