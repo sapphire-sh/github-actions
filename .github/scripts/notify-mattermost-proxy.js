@@ -21,9 +21,15 @@ http.createServer((req, res) => {
       return;
     }
 
+    const slackToMd = s => (s || '').replaceAll(/<([^|>]+)\|([^>]+)>/g, '[$2]($1)');
+    const attachments = (incoming.attachments || []).map(a => ({
+      ...a,
+      text: slackToMd(a.text),
+    }));
+
     const payload = Buffer.from(JSON.stringify({
       channel_id: CHANNEL_ID,
-      props: { attachments: incoming.attachments || [] },
+      props: { attachments },
     }));
 
     const proxyReq = transport.request({
