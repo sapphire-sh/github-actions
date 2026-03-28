@@ -19,6 +19,18 @@ on:
         type: boolean
         default: true
     secrets:
+      REGISTRY_HOST:
+        required: true
+      REGISTRY_USERNAME:
+        required: true
+      REGISTRY_PASSWORD:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_SECRET:
+        required: true
+      PORTAINER_WEBHOOK_URL:
+        required: false
       SLACK_WEBHOOK_URL:
         required: false
       MATTERMOST_TOKEN:
@@ -192,7 +204,10 @@ jobs:
       - name: Trigger Portainer redeploy
         env:
           PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
-        run: curl -X POST "$PORTAINER_WEBHOOK_URL"
+        run: |
+          if [ -n "$PORTAINER_WEBHOOK_URL" ]; then
+            curl -X POST "$PORTAINER_WEBHOOK_URL"
+          fi
 
   notify:
     needs: [test, build-and-push, merge]
