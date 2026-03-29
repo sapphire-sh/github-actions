@@ -196,10 +196,13 @@ jobs:
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+          IMAGE_NAME: ${{ inputs.image_name }}
         run: |
           docker buildx imagetools create \
             $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }}@sha256:%s ' *)
+            $(printf "$REGISTRY_HOST/$IMAGE_NAME@sha256:%s " *)
 
       - name: Trigger Portainer redeploy
         env:
