@@ -22,6 +22,10 @@ on:
         required: false
       MATTERMOST_URL:
         required: false
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: false
+      TAILSCALE_OAUTH_CLIENT_SECRET:
+        required: false
 
 permissions: {}
 
@@ -44,6 +48,8 @@ jobs:
           MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
           MATTERMOST_CHANNEL_ID: ${{ secrets.MATTERMOST_CHANNEL_ID }}
           MATTERMOST_URL: ${{ secrets.MATTERMOST_URL }}
+          TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          TAILSCALE_OAUTH_CLIENT_SECRET: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
           RESULT: ${{ inputs.result }}
           CONTEXT: ${{ inputs.context }}
           JOB: ${{ inputs.job }}
@@ -62,7 +68,7 @@ jobs:
           COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
         run: |
           [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
-          [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
+          [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_ID" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_SECRET" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
           PAYLOAD=$(node .github/scripts/notify-build-payload.js)
           echo "payload<<PAYLOAD_EOF" >> "$GITHUB_OUTPUT"
           echo "$PAYLOAD" >> "$GITHUB_OUTPUT"
@@ -75,6 +81,14 @@ jobs:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
           payload: ${{ steps.status.outputs.payload }}
+
+      - name: Connect to Tailscale
+        if: steps.status.outputs.notify_mattermost == 'true'
+        uses: tailscale/github-action@4e4c49acaa9818630ce0bd7a564372c17e33fb4d # v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
 
       - name: Start Mattermost proxy
         if: steps.status.outputs.notify_mattermost == 'true'
