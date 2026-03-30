@@ -44,11 +44,15 @@ http.createServer((req, res) => {
       },
     }, proxyRes => {
       proxyRes.resume();
-      res.writeHead(proxyRes.statusCode);
-      res.end();
+      const ok = proxyRes.statusCode >= 200 && proxyRes.statusCode < 300;
+      res.writeHead(proxyRes.statusCode, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok }));
     });
 
-    proxyReq.on('error', () => { res.writeHead(500); res.end(); });
+    proxyReq.on('error', () => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false }));
+    });
     proxyReq.end(payload);
   });
 }).listen(8765, '127.0.0.1');
