@@ -11,10 +11,6 @@ on:
         required: false
         type: boolean
         default: false
-      run_started_at:
-        required: false
-        type: string
-        default: ''
     secrets:
       NPM_TOKEN:
         required: true
@@ -110,7 +106,6 @@ jobs:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
       context: ${{ github.repository }}
       job: publish
-      run_started_at: ${{ inputs.run_started_at }}
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}

@@ -13,10 +13,6 @@ on:
         required: false
         type: string
         default: ''
-      run_started_at:
-        required: false
-        type: string
-        default: ''
     secrets:
       SLACK_WEBHOOK_URL:
         required: false
@@ -57,7 +53,7 @@ jobs:
           RESULT: ${{ inputs.result }}
           CONTEXT: ${{ inputs.context }}
           JOB: ${{ inputs.job }}
-          RUN_STARTED_AT: ${{ inputs.run_started_at }}
+          RUN_STARTED_AT: ${{ github.run_started_at }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
