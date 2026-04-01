@@ -18,6 +18,10 @@ on:
         required: false
         type: boolean
         default: true
+      run_started_at:
+        required: false
+        type: string
+        default: ''
     secrets:
       REGISTRY_HOST:
         required: true
@@ -203,6 +207,7 @@ jobs:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
       context: ${{ inputs.image_name }}
       job: build-and-push
+      run_started_at: ${{ inputs.run_started_at }}
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}

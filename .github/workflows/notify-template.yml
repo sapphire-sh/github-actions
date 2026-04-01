@@ -13,6 +13,10 @@ on:
         required: false
         type: string
         default: ''
+      run_started_at:
+        required: false
+        type: string
+        default: ''
     secrets:
       SLACK_WEBHOOK_URL:
         required: false
@@ -36,7 +40,6 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      actions: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -54,6 +57,7 @@ jobs:
           RESULT: ${{ inputs.result }}
           CONTEXT: ${{ inputs.context }}
           JOB: ${{ inputs.job }}
+          RUN_STARTED_AT: ${{ inputs.run_started_at }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
@@ -69,8 +73,6 @@ jobs:
         run: |
           [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
           [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_ID" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_SECRET" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
-          RUN_STARTED_AT=$(gh run view "$RUN_ID" --repo "$REPOSITORY" --json createdAt --jq '.createdAt' 2>/dev/null || echo '')
-          export RUN_STARTED_AT
           PAYLOAD=$(node .github/scripts/notify-build-payload.js)
           echo "payload<<PAYLOAD_EOF" >> "$GITHUB_OUTPUT"
           echo "$PAYLOAD" >> "$GITHUB_OUTPUT"
