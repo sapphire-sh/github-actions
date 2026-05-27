@@ -110,6 +110,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push_image }}
+          provenance: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
