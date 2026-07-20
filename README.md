@@ -86,3 +86,43 @@ jobs:
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
 2. **publish** — Bumps the version, pushes the commit and tag, publishes to npm (with OIDC provenance) and GitHub Packages, then creates a GitHub release with auto-generated notes
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
+
+---
+
+### Shared utils Update ([`.github/workflows/utils-update-template.yml`](.github/workflows/utils-update-template.yml))
+
+A reusable workflow that opens a pull request whenever a newer `@sapphire-sh/utils` is published.
+
+**Usage:**
+
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  utils-update:
+    uses: sapphire-sh/github-actions/.github/workflows/utils-update-template.yml@main
+    with:
+      run_tests: true   # optional, default: false
+```
+
+**Inputs:**
+
+| Name | Required | Default | Description |
+|------|----------|---------|-------------|
+| `run_tests` | No | `false` | Run `npm test` before opening the pull request |
+
+**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
+
+**Jobs:**
+
+1. **check** — Compares the `@sapphire-sh/utils` version pinned in `package.json` with the latest published version and stops when they match
+2. **update** — Bumps the pinned version, runs `npm install --ignore-scripts` and `npm run bootstrap`, verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request. Skipped when a branch for that version already exists
+
+**Notes:**
+
+- Requires *Allow GitHub Actions to create and approve pull requests* in the repository's Actions settings
+- `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request — apply those by running `npm run bootstrap` locally
+- Pull requests opened with `GITHUB_TOKEN` do not trigger other workflows, so CI does not run on them automatically

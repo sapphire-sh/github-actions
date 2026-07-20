@@ -1,0 +1,146 @@
+name: Shared utils Update
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        required: false
+        type: boolean
+        default: false
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      outdated: ${{ steps.resolve.outputs.outdated }}
+      latest: ${{ steps.resolve.outputs.latest }}
+      branch: ${{ steps.resolve.outputs.branch }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Resolve versions
+        id: resolve
+        run: |
+          latest="$(npm view @sapphire-sh/utils version)"
+          current="$(node -p "const p = require('./package.json'); const r = p.dependencies?.['@sapphire-sh/utils'] ?? p.devDependencies?.['@sapphire-sh/utils'] ?? ''; r.replace(/^[^0-9]*/, '')")"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "branch=chore/sapphire-utils-$latest" >> "$GITHUB_OUTPUT"
+          if [ -z "$current" ]; then
+            echo "@sapphire-sh/utils is not a dependency of this repository"
+            exit 1
+          fi
+          if [ "$latest" = "$current" ]; then
+            echo "already up to date ($current)"
+            echo "outdated=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "update available ($current -> $latest)"
+            echo "outdated=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  update:
+    needs: [check]
+    if: needs.check.outputs.outdated == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check for an existing pull request branch
+        id: branch
+        env:
+          BRANCH: ${{ needs.check.outputs.branch }}
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "branch $BRANCH already exists"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Bump dependency version
+        if: steps.branch.outputs.exists == 'false'
+        env:
+          LATEST: ${{ needs.check.outputs.latest }}
+        run: |
+          node -e "
+            const fs = require('node:fs');
+            const name = '@sapphire-sh/utils';
+            const version = process.env.LATEST;
+            const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            for (const field of ['dependencies', 'devDependencies']) {
+              const range = manifest[field]?.[name];
+              if (range === undefined) {
+                continue;
+              }
+              manifest[field][name] = range.replace(/^([^0-9]*).*\$/, '\$1') + version;
+            }
+            fs.writeFileSync('package.json', JSON.stringify(manifest, null, 2) + '\n');
+          "
+
+      - name: Install dependencies
+        if: steps.branch.outputs.exists == 'false'
+        run: npm install --ignore-scripts
+
+      - name: Apply shared configuration
+        if: steps.branch.outputs.exists == 'false'
+        run: npm run bootstrap
+
+      # GITHUB_TOKEN cannot push workflow files, so those changes are left to a local bootstrap run.
+      - name: Discard workflow file changes
+        if: steps.branch.outputs.exists == 'false'
+        run: |
+          if [ -d .github/workflows ]; then
+            git checkout -- .github/workflows
+          fi
+
+      - name: Build
+        if: steps.branch.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Lint
+        if: steps.branch.outputs.exists == 'false'
+        run: npm run lint
+
+      - name: Prettier
+        if: steps.branch.outputs.exists == 'false'
+        run: npm run prettier
+
+      - name: Test
+        if: steps.branch.outputs.exists == 'false' && inputs.run_tests
+        run: npm test
+
+      - name: Create pull request
+        if: steps.branch.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ needs.check.outputs.branch }}
+          LATEST: ${{ needs.check.outputs.latest }}
+        run: |
+          if git diff --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -A
+          git commit -m "chore(deps): bump @sapphire-sh/utils to $LATEST"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(deps): bump @sapphire-sh/utils to $LATEST" \
+            --body "@sapphire-sh/utils $LATEST 반영 및 \`npm run bootstrap\` 실행 결과임. workflow 파일 변경은 제외되어 있으므로 필요 시 로컬에서 bootstrap 을 실행해야 함."
