@@ -1,5 +1,18 @@
-# macOS
+# @sapphire-sh/utils:start
+*.log
+*.tsbuildinfo
 .DS_Store
+.env
+.github/context-mode/
+/build/
+/coverage/
+/data/
+/dist/
+/lib/
+node_modules/
+# @sapphire-sh/utils:end
+
+# macOS
 .AppleDouble
 .LSOverride
 
@@ -9,13 +22,6 @@
 *.swp
 *.swo
 
-# Logs
-*.log
-
 # Environment
-.env
 .env.local
 .env.*.local
-
-# Node (if any scripts)
-node_modules/

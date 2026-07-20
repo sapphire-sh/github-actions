@@ -7,11 +7,12 @@
 		"node": "24"
 	},
 	"scripts": {
+		"bootstrap": "sapphire-bootstrap",
 		"prettier": "prettier --check .",
 		"prettier:fix": "prettier --write ."
 	},
 	"devDependencies": {
-		"@sapphire-sh/utils": "^1.75.0",
+		"@sapphire-sh/utils": "^1.78.0",
 		"prettier": "^3.6.2",
 		"prettier-plugin-organize-imports": "^4.3.0"
 	}
