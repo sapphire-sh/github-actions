@@ -1,0 +1,18 @@
+{
+	"name": "github-actions",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"engines": {
+		"node": "24"
+	},
+	"scripts": {
+		"prettier": "prettier --check .",
+		"prettier:fix": "prettier --write ."
+	},
+	"devDependencies": {
+		"@sapphire-sh/utils": "^1.75.0",
+		"prettier": "^3.6.2",
+		"prettier-plugin-organize-imports": "^4.3.0"
+	}
+}
