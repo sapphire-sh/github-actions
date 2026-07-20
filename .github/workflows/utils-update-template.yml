@@ -108,20 +108,30 @@ jobs:
             git checkout -- .github/workflows
           fi
 
-      - name: Build
+      - name: Detect available scripts
+        id: scripts
         if: steps.branch.outputs.exists == 'false'
+        run: |
+          for script in build lint prettier test; do
+            available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
+            echo "$script is available: $available"
+            echo "$script=$available" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Build
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.build == 'true'
         run: npm run build
 
       - name: Lint
-        if: steps.branch.outputs.exists == 'false'
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.lint == 'true'
         run: npm run lint
 
       - name: Prettier
-        if: steps.branch.outputs.exists == 'false'
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.prettier == 'true'
         run: npm run prettier
 
       - name: Test
-        if: steps.branch.outputs.exists == 'false' && inputs.run_tests
+        if: steps.branch.outputs.exists == 'false' && inputs.run_tests && steps.scripts.outputs.test == 'true'
         run: npm test
 
       - name: Create pull request
