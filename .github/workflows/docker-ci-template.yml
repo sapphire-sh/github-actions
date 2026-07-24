@@ -42,6 +42,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: docker-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ inputs.runner }}
