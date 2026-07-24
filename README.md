@@ -2,6 +2,15 @@
 
 Reusable GitHub Actions workflows.
 
+## Runners
+
+All workflows default to a `self-hosted` runner via the `runner` input. Pass `runner: ubuntu-latest` to run on GitHub-hosted runners instead.
+
+The Docker CI workflow builds `linux/amd64` and `linux/arm64` in a single job. On an arm64 self-hosted runner (e.g. Apple Silicon), the non-native platform is built through QEMU emulation, so the host must be prepared once:
+
+- A Docker runtime (e.g. colima or OrbStack) with the private registry configured as an insecure registry — this replaces the per-run daemon reconfiguration used on ephemeral runners.
+- binfmt/QEMU enabled for cross-platform builds.
+
 ## Workflows
 
 ### Shared Docker CI ([`.github/workflows/docker-ci-template.yml`](.github/workflows/docker-ci-template.yml))
@@ -22,12 +31,13 @@ jobs:
 
 **Inputs:**
 
-| Name          | Required | Default | Description                                                                           |
-| ------------- | -------- | ------- | ------------------------------------------------------------------------------------- |
-| `image_name`  | Yes      | —       | Docker image name (appended to registry host)                                         |
-| `run_tests`   | No       | `false` | Run `npm ci && npm test` before building                                              |
-| `build_image` | No       | `true`  | Build the Docker image                                                                |
-| `push_image`  | No       | `true`  | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets) |
+| Name          | Required | Default       | Description                                                                           |
+| ------------- | -------- | ------------- | ------------------------------------------------------------------------------------- |
+| `image_name`  | Yes      | —             | Docker image name (appended to registry host)                                         |
+| `run_tests`   | No       | `false`       | Run `npm ci && npm test` before building                                              |
+| `build_image` | No       | `true`        | Build the Docker image                                                                |
+| `push_image`  | No       | `true`        | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets) |
+| `runner`      | No       | `self-hosted` | Runner that all jobs run on                                                           |
 
 **Secrets:**
 
@@ -68,10 +78,11 @@ jobs:
 
 **Inputs:**
 
-| Name           | Required | Default | Description                                                           |
-| -------------- | -------- | ------- | --------------------------------------------------------------------- |
-| `version_bump` | No       | `minor` | Version bump type passed to `npm version` (`major`, `minor`, `patch`) |
-| `run_tests`    | No       | `false` | Run `npm ci --ignore-scripts && npm test` before publishing           |
+| Name           | Required | Default       | Description                                                           |
+| -------------- | -------- | ------------- | --------------------------------------------------------------------- |
+| `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`) |
+| `run_tests`    | No       | `false`       | Run `npm ci --ignore-scripts && npm test` before publishing           |
+| `runner`       | No       | `self-hosted` | Runner that all jobs run on                                           |
 
 **Secrets:**
 
@@ -110,9 +121,10 @@ jobs:
 
 **Inputs:**
 
-| Name        | Required | Default | Description                                    |
-| ----------- | -------- | ------- | ---------------------------------------------- |
-| `run_tests` | No       | `false` | Run `npm test` before opening the pull request |
+| Name        | Required | Default       | Description                                    |
+| ----------- | -------- | ------------- | ---------------------------------------------- |
+| `run_tests` | No       | `false`       | Run `npm test` before opening the pull request |
+| `runner`    | No       | `self-hosted` | Runner that all jobs run on                    |
 
 **Secrets:** none — the automatic `GITHUB_TOKEN` is used.
 

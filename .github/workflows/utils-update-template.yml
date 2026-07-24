@@ -7,12 +7,16 @@ on:
         required: false
         type: boolean
         default: false
+      runner:
+        required: false
+        type: string
+        default: self-hosted
 
 permissions: {}
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
     outputs:
@@ -48,7 +52,7 @@ jobs:
   update:
     needs: [check]
     if: needs.check.outputs.outdated == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     permissions:
       contents: write
       pull-requests: write
