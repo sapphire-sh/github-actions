@@ -11,6 +11,8 @@ The Docker CI workflow builds `linux/amd64` and `linux/arm64` in a single job by
 - A Docker runtime (e.g. colima or OrbStack) with the private registry configured as an insecure registry — this replaces the per-run daemon reconfiguration used on ephemeral runners.
 - binfmt/QEMU enabled for cross-platform builds.
 
+On a self-hosted host the Docker CI workflow reuses a persistent Buildx builder (`keep-state`), so its BuildKit layer cache survives between runs and unchanged layers are served locally instead of rebuilt. The builder's cache grows over time and can be pruned with `docker buildx prune`. On github-hosted runners the builder is ephemeral, so the GitHub Actions cache backend is used instead to carry the cache across runs.
+
 ## Workflows
 
 ### Shared Docker CI ([`.github/workflows/docker-ci-template.yml`](.github/workflows/docker-ci-template.yml))

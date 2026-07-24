@@ -89,6 +89,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
+          # A fixed builder name plus keep-state persists the BuildKit cache across runs on
+          # a long-lived self-hosted host, so unchanged layers hit the local cache instead of
+          # rebuilding. On ephemeral github-hosted runners the state is discarded regardless.
+          name: docker-ci
+          keep-state: true
           driver-opts: network=host
           buildkitd-config-inline: |
             [registry."${{ secrets.REGISTRY_HOST }}"]
@@ -114,8 +119,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           push: ${{ inputs.push_image }}
           provenance: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Self-hosted runners reuse the persistent buildx builder's local cache, so the GHA
+          # remote cache backend (a network round-trip that would only slow them down) is scoped
+          # to ephemeral github-hosted runners, where it is the only way to carry state across runs.
+          cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha' || '' }}
+          cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max' || '' }}
 
       - name: Trigger Portainer redeploy
         if: inputs.push_image
