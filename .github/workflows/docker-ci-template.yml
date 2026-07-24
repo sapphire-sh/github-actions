@@ -22,6 +22,10 @@ on:
         required: false
         type: string
         default: self-hosted
+      platforms:
+        required: false
+        type: string
+        default: linux/amd64,linux/arm64
     secrets:
       REGISTRY_HOST:
         required: true
@@ -105,7 +109,7 @@ jobs:
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ inputs.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
           tags: ${{ steps.meta.outputs.tags }}
           push: ${{ inputs.push_image }}
