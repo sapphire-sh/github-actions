@@ -166,6 +166,11 @@ jobs:
           # tear down the builder another job on the same host is still building with.
           name: docker-ci-${{ inputs.image_name }}
           keep-state: true
+          # A repository-scoped name still leaves two jobs of this repository sharing it: a
+          # platform matrix whose runner inputs point both builds at one host, and runs of
+          # different refs, which the workflow-level concurrency group does not cancel. Removal
+          # is therefore kept to github-hosted runners, whose builders go away with the runner.
+          cleanup: ${{ runner.environment == 'github-hosted' }}
           driver-opts: network=host
           buildkitd-config-inline: |
             [registry."${{ secrets.REGISTRY_HOST }}"]
@@ -247,6 +252,9 @@ jobs:
           # their state instead of creating a builder of its own.
           name: docker-ci-${{ inputs.image_name }}
           keep-state: true
+          # Scoped the same way as in build-and-push, so this job's end does not take down a
+          # builder that a concurrent run of the same repository is still using.
+          cleanup: ${{ runner.environment == 'github-hosted' }}
           driver-opts: network=host
           buildkitd-config-inline: |
             [registry."${{ secrets.REGISTRY_HOST }}"]
