@@ -26,6 +26,10 @@ on:
         required: false
         type: string
         default: linux/amd64,linux/arm64
+      rebuild_packages:
+        required: false
+        type: string
+        default: ''
     secrets:
       REGISTRY_HOST:
         required: true
@@ -63,6 +67,14 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --ignore-scripts
+      # The install above skips lifecycle scripts for the whole dependency tree, which leaves
+      # a native addon without the binding file its own install script produces. Listing those
+      # package names runs their scripts back, without turning scripts on for every dependency.
+      - name: Rebuild packages that need their install scripts
+        if: inputs.rebuild_packages != ''
+        env:
+          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
+        run: npm rebuild $REBUILD_PACKAGES
       - run: npm test
 
   build-and-push:

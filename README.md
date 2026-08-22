@@ -33,14 +33,15 @@ jobs:
 
 **Inputs:**
 
-| Name          | Required | Default                   | Description                                                                           |
-| ------------- | -------- | ------------------------- | ------------------------------------------------------------------------------------- |
-| `image_name`  | Yes      | —                         | Docker image name (appended to registry host)                                         |
-| `run_tests`   | No       | `false`                   | Run `npm ci && npm test` before building                                              |
-| `build_image` | No       | `true`                    | Build the Docker image                                                                |
-| `push_image`  | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets) |
-| `runner`      | No       | `self-hosted`             | Runner that all jobs run on                                                           |
-| `platforms`   | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms passed to buildx                                     |
+| Name               | Required | Default                   | Description                                                                                                                                |
+| ------------------ | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `image_name`       | Yes      | —                         | Docker image name (appended to registry host)                                                                                              |
+| `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building                                                                                  |
+| `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                     |
+| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets)                                                      |
+| `runner`           | No       | `self-hosted`             | Runner that all jobs run on                                                                                                                |
+| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms passed to buildx                                                                                          |
+| `rebuild_packages` | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
 
 **Secrets:**
 
@@ -57,7 +58,7 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
+1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
 2. **build-and-push** — Connects to Tailscale, logs in to the private registry, builds the Docker image with Buildx, and pushes it. Tags: short SHA + `latest` on the default branch
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
 
