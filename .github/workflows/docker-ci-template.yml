@@ -158,10 +158,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
-          # A fixed builder name plus keep-state persists the BuildKit cache across runs on
+          # A stable builder name plus keep-state persists the BuildKit cache across runs on
           # a long-lived self-hosted host, so unchanged layers hit the local cache instead of
           # rebuilding. On ephemeral github-hosted runners the state is discarded regardless.
-          name: docker-ci
+          # The name carries image_name because setup-buildx-action removes the builder when a
+          # job ends: one name shared by every calling repository would let a finishing job
+          # tear down the builder another job on the same host is still building with.
+          name: docker-ci-${{ inputs.image_name }}
           keep-state: true
           driver-opts: network=host
           buildkitd-config-inline: |
@@ -240,7 +243,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
         with:
-          name: docker-ci
+          # The same name the build jobs use: merge runs after them through needs, so it reuses
+          # their state instead of creating a builder of its own.
+          name: docker-ci-${{ inputs.image_name }}
           keep-state: true
           driver-opts: network=host
           buildkitd-config-inline: |

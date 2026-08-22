@@ -13,7 +13,7 @@ Mapping a platform to a runner of another architecture (e.g. `runner_amd64: self
 - A Docker runtime (e.g. colima or OrbStack) with the private registry configured as an insecure registry — this replaces the per-run daemon reconfiguration used on ephemeral runners.
 - binfmt/QEMU enabled for cross-platform builds.
 
-On a self-hosted host the Docker CI workflow reuses a persistent Buildx builder (`keep-state`), so its BuildKit layer cache survives between runs and unchanged layers are served locally instead of rebuilt. The builder's cache grows over time and can be pruned with `docker buildx prune`. On github-hosted runners the builder is ephemeral, so the GitHub Actions cache backend is used instead to carry the cache across runs.
+On a self-hosted host the Docker CI workflow reuses a persistent Buildx builder (`keep-state`), so its BuildKit layer cache survives between runs and unchanged layers are served locally instead of rebuilt. The builder is named after the image (`docker-ci-<image_name>`), so a host shared by several repositories holds one builder per repository and a job finishing in one repository does not remove the builder another is still using. Each builder keeps its own cache, which grows over time and is pruned per builder with `docker buildx prune --builder docker-ci-<image_name>`; `docker buildx ls` lists the ones present on the host. On github-hosted runners the builder is ephemeral, so the GitHub Actions cache backend is used instead to carry the cache across runs.
 
 ## Workflows
 
