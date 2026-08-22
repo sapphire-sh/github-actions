@@ -6,7 +6,9 @@ Reusable GitHub Actions workflows.
 
 All workflows default to a `self-hosted` runner via the `runner` input. Pass `runner: ubuntu-latest` to run on GitHub-hosted runners instead.
 
-The Docker CI workflow builds `linux/amd64` and `linux/arm64` in a single job by default. Override the `platforms` input to build a subset (e.g. `linux/arm64` only) — useful to skip the slow QEMU-emulated platform on a single-architecture host. On an arm64 self-hosted runner (e.g. Apple Silicon), the non-native platform is built through QEMU emulation, so the host must be prepared once:
+The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
+
+Mapping a platform to a runner of another architecture (e.g. `runner_amd64: self-hosted` on an Apple Silicon host) builds it through QEMU emulation instead, and the emulated build is much slower. A self-hosted host must be prepared once:
 
 - A Docker runtime (e.g. colima or OrbStack) with the private registry configured as an insecure registry — this replaces the per-run daemon reconfiguration used on ephemeral runners.
 - binfmt/QEMU enabled for cross-platform builds.
@@ -39,8 +41,10 @@ jobs:
 | `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building                                                                                  |
 | `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                     |
 | `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets)                                                      |
-| `runner`           | No       | `self-hosted`             | Runner that all jobs run on                                                                                                                |
-| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms passed to buildx                                                                                          |
+| `runner`           | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                |
+| `runner_amd64`     | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                            |
+| `runner_arm64`     | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                            |
+| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms, each built as its own job on the runner mapped to it                                                     |
 | `rebuild_packages` | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
 
 **Secrets:**
@@ -59,8 +63,10 @@ jobs:
 **Jobs:**
 
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
-2. **build-and-push** — Connects to Tailscale, logs in to the private registry, builds the Docker image with Buildx, and pushes it. Tags: short SHA + `latest` on the default branch
-3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
+2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it
+3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
+4. **merge** — Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy. Tags: short SHA + `latest` on the default branch
+5. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
 
 ---
 

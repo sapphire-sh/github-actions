@@ -22,6 +22,14 @@ on:
         required: false
         type: string
         default: self-hosted
+      runner_amd64:
+        required: false
+        type: string
+        default: ubuntu-latest
+      runner_arm64:
+        required: false
+        type: string
+        default: self-hosted
       platforms:
         required: false
         type: string
@@ -77,15 +85,60 @@ jobs:
         run: npm rebuild $REBUILD_PACKAGES
       - run: npm test
 
+  # This job carries no build_image condition: a skipped job produces no output, and the build
+  # matrix below would then have an empty value to expand.
+  prepare:
+    runs-on: ${{ inputs.runner }}
+    permissions: {}
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      # Each requested platform becomes its own build job on the runner that is native to it,
+      # so the matrix follows the platforms input instead of being fixed to both architectures.
+      - name: Build platform matrix
+        id: matrix
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+          RUNNER_AMD64: ${{ inputs.runner_amd64 }}
+          RUNNER_ARM64: ${{ inputs.runner_arm64 }}
+        run: |
+          IFS=',' read -ra requested <<< "${PLATFORMS// /}"
+          entries=''
+          for platform in "${requested[@]}"; do
+            case "$platform" in
+              linux/amd64) runner="$RUNNER_AMD64" ;;
+              linux/arm64) runner="$RUNNER_ARM64" ;;
+              *) echo "unsupported platform: $platform" >&2; exit 1 ;;
+            esac
+            if [ -n "$entries" ]; then
+              entries="$entries,"
+            fi
+            entries="$entries{\"platform\":\"$platform\",\"slug\":\"${platform//\//-}\",\"runner\":\"$runner\"}"
+          done
+          echo "matrix={\"include\":[$entries]}" >> "$GITHUB_OUTPUT"
+
   build-and-push:
-    needs: [test]
+    needs: [test, prepare]
     if: inputs.build_image && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     permissions:
       contents: read
-    runs-on: ${{ inputs.runner }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      # A self-hosted host keeps its registry and Tailscale configuration between runs, so both
+      # steps below are scoped to the ephemeral github-hosted runners that start from a clean image.
+      - name: Configure insecure registry
+        if: inputs.push_image && runner.environment == 'github-hosted'
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+        run: |
+          echo "{\"insecure-registries\": [\"$REGISTRY_HOST\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
 
       - name: Connect to Tailscale
         if: inputs.push_image && runner.environment == 'github-hosted'
@@ -95,7 +148,11 @@ jobs:
           oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
           tags: tag:ci
 
+      # Every platform builds on a runner of its own architecture by default, where emulation is
+      # not involved. QEMU is installed only when a platform is mapped to a foreign-architecture
+      # runner, which is what the platform-specific runner inputs allow.
       - name: Set up QEMU
+        if: (matrix.platform == 'linux/amd64' && runner.arch != 'X64') || (matrix.platform == 'linux/arm64' && runner.arch != 'ARM64')
         uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
 
       - name: Set up Docker Buildx
@@ -117,19 +174,15 @@ jobs:
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
           images: ${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }}
-          tags: |
-            type=sha,prefix=,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
+      - name: Build and push by digest
         id: build
         uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
         with:
           context: .
-          platforms: ${{ inputs.platforms }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          tags: ${{ steps.meta.outputs.tags }}
-          push: ${{ inputs.push_image }}
+          outputs: type=image,name=${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push_image }}
           provenance: false
           # Self-hosted runners reuse the persistent buildx builder's local cache, so the GHA
           # remote cache backend (a network round-trip that would only slow them down) is scoped
@@ -137,8 +190,92 @@ jobs:
           cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha' || '' }}
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max' || '' }}
 
-      - name: Trigger Portainer redeploy
+      - name: Export digest
         if: inputs.push_image
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
+
+      - name: Upload digest
+        if: inputs.push_image
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: digests-${{ matrix.slug }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: [build-and-push]
+    if: inputs.build_image && inputs.push_image && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: read
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: digests-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Configure insecure registry
+        if: runner.environment == 'github-hosted'
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+        run: |
+          echo "{\"insecure-registries\": [\"$REGISTRY_HOST\"]}" | sudo tee /etc/docker/daemon.json
+          sudo systemctl restart docker
+
+      - name: Connect to Tailscale
+        if: runner.environment == 'github-hosted'
+        uses: tailscale/github-action@4e4c49acaa9818630ce0bd7a564372c17e33fb4d # v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+        with:
+          name: docker-ci
+          keep-state: true
+          driver-opts: network=host
+          buildkitd-config-inline: |
+            [registry."${{ secrets.REGISTRY_HOST }}"]
+              http = true
+              insecure = true
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
+          IMAGE_NAME: ${{ inputs.image_name }}
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          arguments=()
+          while IFS= read -r tag; do
+            if [ -n "$tag" ]; then
+              arguments+=(-t "$tag")
+            fi
+          done <<< "$TAGS"
+          for digest in *; do
+            arguments+=("$REGISTRY_HOST/$IMAGE_NAME@sha256:$digest")
+          done
+          docker buildx imagetools create "${arguments[@]}"
+
+      - name: Trigger Portainer redeploy
         env:
           PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
         run: |
@@ -147,7 +284,7 @@ jobs:
           fi
 
   notify:
-    needs: [test, build-and-push]
+    needs: [test, prepare, build-and-push, merge]
     if: always()
     permissions:
       contents: read
