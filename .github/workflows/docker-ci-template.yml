@@ -161,16 +161,16 @@ jobs:
           # A stable builder name plus keep-state persists the BuildKit cache across runs on
           # a long-lived self-hosted host, so unchanged layers hit the local cache instead of
           # rebuilding. On ephemeral github-hosted runners the state is discarded regardless.
-          # The name carries image_name because setup-buildx-action removes the builder when a
-          # job ends: one name shared by every calling repository would let a finishing job
-          # tear down the builder another job on the same host is still building with.
+          # The name carries image_name so a host shared by several calling repositories holds
+          # one builder, and one cache, per repository.
           name: docker-ci-${{ inputs.image_name }}
           keep-state: true
-          # A repository-scoped name still leaves two jobs of this repository sharing it: a
-          # platform matrix whose runner inputs point both builds at one host, and runs of
-          # different refs, which the workflow-level concurrency group does not cancel. Removal
-          # is therefore kept to github-hosted runners, whose builders go away with the runner.
-          cleanup: ${{ runner.environment == 'github-hosted' }}
+          # setup-buildx-action removes the builder when a job ends by default, which would tear
+          # down one that a concurrent job is still building with: both platform builds when the
+          # runner inputs point them at one host, or a run of a different ref the concurrency
+          # group does not cancel. On github-hosted runners the builder goes away with the runner
+          # either way.
+          cleanup: false
           driver-opts: network=host
           buildkitd-config-inline: |
             [registry."${{ secrets.REGISTRY_HOST }}"]
@@ -252,9 +252,8 @@ jobs:
           # their state instead of creating a builder of its own.
           name: docker-ci-${{ inputs.image_name }}
           keep-state: true
-          # Scoped the same way as in build-and-push, so this job's end does not take down a
-          # builder that a concurrent run of the same repository is still using.
-          cleanup: ${{ runner.environment == 'github-hosted' }}
+          # Kept for the same reason as in build-and-push.
+          cleanup: false
           driver-opts: network=host
           buildkitd-config-inline: |
             [registry."${{ secrets.REGISTRY_HOST }}"]
