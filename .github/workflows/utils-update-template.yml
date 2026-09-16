@@ -11,6 +11,10 @@ on:
         required: false
         type: string
         default: self-hosted
+      rebuild_packages:
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -103,6 +107,15 @@ jobs:
       - name: Install dependencies
         if: steps.branch.outputs.exists == 'false'
         run: npm install --ignore-scripts
+
+      # This job runs directly on the runner host, so the install above keeps lifecycle scripts
+      # off for the whole dependency tree. Listing the packages whose install script produces
+      # their binding file runs those scripts back, without turning scripts on for everything.
+      - name: Rebuild packages that need their install scripts
+        if: steps.branch.outputs.exists == 'false' && inputs.rebuild_packages != ''
+        env:
+          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
+        run: npm rebuild $REBUILD_PACKAGES
 
       - name: Apply shared configuration
         if: steps.branch.outputs.exists == 'false'
