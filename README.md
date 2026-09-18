@@ -127,6 +127,7 @@ jobs:
 | Name           | Required | Default       | Description                                                           |
 | -------------- | -------- | ------------- | --------------------------------------------------------------------- |
 | `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`) |
+| `release_tag`  | No       | `''`          | Existing tag to check out and publish without bumping or pushing      |
 | `run_tests`    | No       | `false`       | Run `npm ci --ignore-scripts && npm test` before publishing           |
 | `runner`       | No       | `self-hosted` | Runner that all jobs run on                                           |
 
@@ -141,7 +142,7 @@ jobs:
 **Jobs:**
 
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
-2. **publish** — Bumps the version, pushes the commit and tag, publishes to npm (with OIDC provenance) and GitHub Packages, then creates a GitHub release with auto-generated notes
+2. **publish** — Bumps the version, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
 
 ---
