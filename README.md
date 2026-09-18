@@ -70,6 +70,42 @@ jobs:
 
 ---
 
+### Shared Buildx Prune ([`.github/workflows/buildx-prune-template.yml`](.github/workflows/buildx-prune-template.yml))
+
+A reusable workflow that prunes the BuildKit cache of the persistent `docker-ci-<image_name>` builder the Docker CI workflow keeps on a self-hosted host. Call it on a `schedule` from the same repository that calls the Docker CI workflow, with the same `image_name` and a `runner` that reaches the same host.
+
+**Usage:**
+
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+
+jobs:
+  buildx-prune:
+    uses: sapphire-sh/github-actions/.github/workflows/buildx-prune-template.yml@main
+    with:
+      image_name: my-app
+      retention: 128h # optional, default: 128h
+```
+
+**Inputs:**
+
+| Name         | Required | Default       | Description                                                                                        |
+| ------------ | -------- | ------------- | -------------------------------------------------------------------------------------------------- |
+| `image_name` | Yes      | —             | Image name the Docker CI workflow was called with, selecting the builder                           |
+| `runner`     | No       | `self-hosted` | Runner on the host that holds the builder                                                          |
+| `retention`  | No       | `128h`        | Duration string passed as `--filter until=<retention>`; cache records unused for longer are pruned |
+
+**Secrets:** none.
+
+**Jobs:**
+
+1. **prune** — Runs `docker buildx prune --builder docker-ci-<image_name> --filter until=<retention> --force`
+
+---
+
 ### Shared npm Publish ([`.github/workflows/npm-publish-template.yml`](.github/workflows/npm-publish-template.yml))
 
 A reusable workflow for bumping, building, and publishing an npm package to both the npm registry and GitHub Packages.

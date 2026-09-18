@@ -1,0 +1,32 @@
+name: Shared Buildx Prune
+
+on:
+  workflow_call:
+    inputs:
+      image_name:
+        required: true
+        type: string
+      runner:
+        required: false
+        type: string
+        default: self-hosted
+      retention:
+        required: false
+        type: string
+        default: 128h
+
+permissions: {}
+
+jobs:
+  prune:
+    runs-on: ${{ inputs.runner }}
+    permissions: {}
+    steps:
+      # docker-ci-template keeps its builder on a self-hosted host between runs, so the BuildKit
+      # cache of each builder grows until something prunes it. The name matches the one that
+      # template gives the builder for the same image_name.
+      - name: Prune builder cache
+        env:
+          BUILDER: docker-ci-${{ inputs.image_name }}
+          RETENTION: ${{ inputs.retention }}
+        run: docker buildx prune --builder "$BUILDER" --filter "until=$RETENTION" --force
