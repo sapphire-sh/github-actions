@@ -62,7 +62,7 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
+1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
 2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it
 3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
 4. **merge** — Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy. Tags: short SHA + `latest` on the default branch
@@ -140,7 +140,7 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 24 (skipped if `run_tests` is `false`)
+1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
 2. **publish** — Bumps the version, pushes the commit and tag, publishes to npm (with OIDC provenance) and GitHub Packages, then creates a GitHub release with auto-generated notes
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
 
