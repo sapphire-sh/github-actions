@@ -124,12 +124,12 @@ jobs:
 
 **Inputs:**
 
-| Name           | Required | Default       | Description                                                           |
-| -------------- | -------- | ------------- | --------------------------------------------------------------------- |
-| `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`) |
-| `release_tag`  | No       | `''`          | Existing tag to check out and publish without bumping or pushing      |
-| `run_tests`    | No       | `false`       | Run `npm ci --ignore-scripts && npm test` before publishing           |
-| `runner`       | No       | `self-hosted` | Runner that all jobs run on                                           |
+| Name           | Required | Default       | Description                                                                                    |
+| -------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------- |
+| `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`)                          |
+| `release_tag`  | No       | `''`          | Existing tag to check out and publish without bumping or pushing (`2.1.0` is read as `v2.1.0`) |
+| `run_tests`    | No       | `false`       | Run `npm ci --ignore-scripts && npm test` before publishing                                    |
+| `runner`       | No       | `self-hosted` | Runner that all jobs run on                                                                    |
 
 **Secrets:**
 

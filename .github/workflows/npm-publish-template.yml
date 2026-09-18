@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_tag != '' && !startsWith(inputs.release_tag, 'v') && format('v{0}', inputs.release_tag) || inputs.release_tag }}
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 26
@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ inputs.release_tag }}
+          ref: ${{ inputs.release_tag != '' && !startsWith(inputs.release_tag, 'v') && format('v{0}', inputs.release_tag) || inputs.release_tag }}
 
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -113,7 +113,7 @@ jobs:
         run: gh release create --generate-notes "${RELEASE_TAG:-$(git describe --tags)}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
+          RELEASE_TAG: ${{ inputs.release_tag != '' && !startsWith(inputs.release_tag, 'v') && format('v{0}', inputs.release_tag) || inputs.release_tag }}
 
   notify:
     needs: [test, publish]
