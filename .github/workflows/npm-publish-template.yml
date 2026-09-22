@@ -86,7 +86,31 @@ jobs:
         if: inputs.release_tag == ''
         env:
           VERSION_BUMP: ${{ inputs.version_bump }}
-        run: npm version "$VERSION_BUMP"
+        run: |
+          case "$VERSION_BUMP" in
+            major | minor | patch) ;;
+            *)
+              npm version "$VERSION_BUMP"
+              exit 0
+              ;;
+          esac
+          PACKAGE_NAME=$(npm pkg get name | tr -d '"')
+          CURRENT_VERSION=$(npm pkg get version | tr -d '"')
+          PUBLISHED_TIME=$(npm view "$PACKAGE_NAME" time --json || echo '{}')
+          NEXT_VERSION=$(CURRENT_VERSION="$CURRENT_VERSION" PUBLISHED_TIME="$PUBLISHED_TIME" node -e '
+            const published = new Set(Object.keys(JSON.parse(process.env.PUBLISHED_TIME)));
+            const version = process.env.CURRENT_VERSION.split(".").map(Number);
+            const level = { major: 0, minor: 1, patch: 2 }[process.env.VERSION_BUMP];
+            version[level] += 1;
+            for (let index = level + 1; index < version.length; index += 1) {
+              version[index] = 0;
+            }
+            while (published.has(version.join("."))) {
+              version[2] += 1;
+            }
+            console.log(version.join("."));
+          ')
+          npm version "$NEXT_VERSION"
 
       - name: Push version commit and tag
         if: inputs.release_tag == ''
