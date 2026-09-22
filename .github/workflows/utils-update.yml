@@ -8,6 +8,10 @@ on:
 jobs:
   update:
     uses: sapphire-sh/github-actions/.github/workflows/utils-update-template.yml@main
+    # This repository has no self-hosted runner registered, so the template's
+    # self-hosted default leaves the job queued until the next run cancels it.
+    with:
+      runner: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
