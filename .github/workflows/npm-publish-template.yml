@@ -21,7 +21,7 @@ on:
         default: self-hosted
     secrets:
       NPM_TOKEN:
-        required: true
+        required: false
       SLACK_WEBHOOK_URL:
         required: false
       MATTERMOST_TOKEN:
@@ -119,9 +119,7 @@ jobs:
           git push --tags
 
       - name: Publish to npm
-        run: npm publish --access public --provenance --tag latest
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --tag latest
 
       - name: Publish to GitHub Packages
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0

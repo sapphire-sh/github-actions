@@ -133,11 +133,13 @@ jobs:
 
 **Secrets:**
 
-| Name                     | Required | Description                                           |
-| ------------------------ | -------- | ----------------------------------------------------- |
-| `NPM_TOKEN`              | Yes      | npm access token for publishing to the npm registry   |
-| `SLACK_WEBHOOK_URL`      | No       | Slack incoming webhook for publish notifications      |
-| `MATTERMOST_WEBHOOK_URL` | No       | Mattermost incoming webhook for publish notifications |
+| Name                     | Required | Description                                                                      |
+| ------------------------ | -------- | -------------------------------------------------------------------------------- |
+| `NPM_TOKEN`              | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC) |
+| `SLACK_WEBHOOK_URL`      | No       | Slack incoming webhook for publish notifications                                 |
+| `MATTERMOST_WEBHOOK_URL` | No       | Mattermost incoming webhook for publish notifications                            |
+
+**Trusted publishing:** The npm registry publish authenticates through trusted publishing (OIDC), so every package needs a trusted publisher configured on npmjs.com before its first publish. npm validates the calling workflow rather than this reusable workflow, so register the caller repository and the caller workflow filename.
 
 **Jobs:**
 
