@@ -168,10 +168,11 @@ jobs:
 
 **Inputs:**
 
-| Name        | Required | Default         | Description                                    |
-| ----------- | -------- | --------------- | ---------------------------------------------- |
-| `run_tests` | No       | `false`         | Run `npm test` before opening the pull request |
-| `runner`    | No       | `ubuntu-latest` | Runner that all jobs run on                    |
+| Name               | Required | Default         | Description                                                                                                                                                   |
+| ------------------ | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_tests`        | No       | `false`         | Run `npm test` before opening the pull request                                                                                                                |
+| `runner`           | No       | `ubuntu-latest` | Runner that all jobs run on                                                                                                                                   |
+| `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after `npm install --ignore-scripts`, so their install scripts run (e.g. a native addon's binding file) |
 
 **Secrets:** none — the automatic `GITHUB_TOKEN` is used.
 
