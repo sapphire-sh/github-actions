@@ -10,7 +10,7 @@ on:
       runner:
         required: false
         type: string
-        default: self-hosted
+        default: ubuntu-latest
       rebuild_packages:
         required: false
         type: string

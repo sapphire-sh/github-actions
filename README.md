@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows default to a `self-hosted` runner via the `runner` input. Pass `runner: ubuntu-latest` to run on GitHub-hosted runners instead.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update workflow, where it defaults to `ubuntu-latest` because that workflow needs nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -168,10 +168,10 @@ jobs:
 
 **Inputs:**
 
-| Name        | Required | Default       | Description                                    |
-| ----------- | -------- | ------------- | ---------------------------------------------- |
-| `run_tests` | No       | `false`       | Run `npm test` before opening the pull request |
-| `runner`    | No       | `self-hosted` | Runner that all jobs run on                    |
+| Name        | Required | Default         | Description                                    |
+| ----------- | -------- | --------------- | ---------------------------------------------- |
+| `run_tests` | No       | `false`         | Run `npm test` before opening the pull request |
+| `runner`    | No       | `ubuntu-latest` | Runner that all jobs run on                    |
 
 **Secrets:** none — the automatic `GITHUB_TOKEN` is used.
 
