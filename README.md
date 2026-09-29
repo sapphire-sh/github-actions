@@ -35,17 +35,17 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default                   | Description                                                                                                                                |
-| ------------------ | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `image_name`       | Yes      | —                         | Docker image name (appended to registry host)                                                                                              |
-| `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building                                                                                  |
-| `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                     |
-| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets)                                                      |
-| `runner`           | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                |
-| `runner_amd64`     | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                            |
-| `runner_arm64`     | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                            |
-| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms, each built as its own job on the runner mapped to it                                                     |
-| `rebuild_packages` | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
+| Name               | Required | Default                   | Description                                                                                                                                                   |
+| ------------------ | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image_name`       | Yes      | —                         | Docker image name (appended to registry host)                                                                                                                 |
+| `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building, with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty |
+| `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                                        |
+| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets)                                                                         |
+| `runner`           | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                                   |
+| `runner_amd64`     | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                                               |
+| `runner_arm64`     | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                                               |
+| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms, each built as its own job on the runner mapped to it                                                                        |
+| `rebuild_packages` | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                    |
 
 **Secrets:**
 
