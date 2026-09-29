@@ -62,7 +62,7 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
+1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
 2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it
 3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
 4. **merge** — Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy. Tags: short SHA + `latest` on the default branch
@@ -214,7 +214,7 @@ jobs:
 **Jobs:**
 
 1. **check** — Compares the `@sapphire-sh/utils` version pinned in `package.json` with the latest published version and stops when they match
-2. **update** — Bumps the pinned version, runs `npm install --ignore-scripts` and `npm run bootstrap`, verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request. Skipped when a branch for that version already exists
+2. **update** — Bumps the pinned version, runs `npm install --ignore-scripts` and `npm run bootstrap` (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request. Skipped when a branch for that version already exists
 
 **Notes:**
 
