@@ -1,0 +1,55 @@
+name: Shared UserScript Publish
+
+on:
+  workflow_call:
+    inputs:
+      assets:
+        required: true
+        type: string
+      working_directory:
+        required: false
+        type: string
+        default: .
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+
+permissions: {}
+
+concurrency:
+  group: userscript-publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - run: npm ci
+
+      - name: Set userscript version
+        run: echo "USERSCRIPT_VERSION=$(date +%s)" >> "$GITHUB_ENV"
+
+      - run: npm run build
+        working-directory: ${{ inputs.working_directory }}
+
+      - name: Recreate release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ASSETS: ${{ inputs.assets }}
+        run: |
+          gh release delete userscript-latest --yes --cleanup-tag || true
+          gh release create userscript-latest \
+            --target "${{ github.sha }}" \
+            --title 'UserScript (latest)' \
+            --notes "Auto-published from ${{ github.sha }} (version ${USERSCRIPT_VERSION})." \
+            $ASSETS

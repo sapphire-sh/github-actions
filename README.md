@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update workflow, where it defaults to `ubuntu-latest` because that workflow needs nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -146,6 +146,39 @@ jobs:
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
 2. **publish** — Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
+
+---
+
+### Shared UserScript Publish ([`.github/workflows/userscript-publish-template.yml`](.github/workflows/userscript-publish-template.yml))
+
+A reusable workflow that builds userscripts and publishes them as assets of the fixed `userscript-latest` GitHub release, replacing the previous release and its tag on every run.
+
+**Usage:**
+
+```yaml
+jobs:
+  publish:
+    uses: sapphire-sh/github-actions/.github/workflows/userscript-publish-template.yml@main
+    with:
+      assets: dist/*.user.js
+      working_directory: . # optional, default: .
+```
+
+**Inputs:**
+
+| Name                | Required | Default         | Description                                                                                              |
+| ------------------- | -------- | --------------- | -------------------------------------------------------------------------------------------------------- |
+| `assets`            | Yes      | —               | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded |
+| `working_directory` | No       | `.`             | Directory where `npm run build` runs                                                                     |
+| `runner`            | No       | `ubuntu-latest` | Runner that the publish job runs on                                                                      |
+
+**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
+
+**Jobs:**
+
+1. **publish** — Runs `npm ci` on Node.js 26, records the current Unix time as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached
+
+Notifications are left to the caller, which can report its checks and the publish result together.
 
 ---
 
