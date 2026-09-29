@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -146,6 +146,48 @@ jobs:
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`)
 2. **publish** — Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag
 3. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
+
+---
+
+### Shared npm Audit Fix ([`.github/workflows/npm-audit-fix-template.yml`](.github/workflows/npm-audit-fix-template.yml))
+
+A reusable workflow that applies `npm audit fix` and opens a pull request with the result.
+
+**Usage:**
+
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  npm-audit-fix:
+    uses: sapphire-sh/github-actions/.github/workflows/npm-audit-fix-template.yml@main
+    with:
+      run_tests: true # optional, default: false
+```
+
+**Inputs:**
+
+| Name               | Required | Default         | Description                                                                                                                            |
+| ------------------ | -------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_tests`        | No       | `false`         | Run `npm test` before opening the pull request                                                                                         |
+| `runner`           | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                                                        |
+| `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after the fix, so their install scripts run (e.g. a native addon's binding file) |
+
+**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
+
+**Jobs:**
+
+1. **fix** — Stops when the `chore/npm-audit-fix` branch already exists. Otherwise runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request when the fix changed anything
+
+**Notes:**
+
+- `--force` is not passed, so only fixes inside the declared dependency ranges are applied; vulnerabilities that need a range change remain and do not fail the run
+- While the `chore/npm-audit-fix` branch exists, later runs stop without updating it, so the next fixes arrive once that branch is merged or deleted
+- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
+- Pull requests opened with `GITHUB_TOKEN` do not trigger other workflows, so CI does not run on them automatically
 
 ---
 

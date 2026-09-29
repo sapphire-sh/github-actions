@@ -1,0 +1,115 @@
+name: Shared npm Audit Fix
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        required: false
+        type: boolean
+        default: false
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+      rebuild_packages:
+        required: false
+        type: string
+        default: ''
+
+permissions: {}
+
+concurrency:
+  group: npm-audit-fix-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Check for an existing pull request branch
+        id: branch
+        env:
+          BRANCH: chore/npm-audit-fix
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "branch $BRANCH already exists"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.branch.outputs.exists == 'false'
+        run: npm ci --ignore-scripts
+
+      # Without --force the fixes stay inside the declared dependency ranges. npm audit fix exits
+      # non-zero while a vulnerability it could not fix remains, and audit-level none raises that
+      # threshold above every severity so those leftovers do not fail the job.
+      - name: Apply audit fixes
+        if: steps.branch.outputs.exists == 'false'
+        run: npm audit fix --ignore-scripts --audit-level=none
+
+      # The install and the fix above keep lifecycle scripts off for the whole dependency tree.
+      # Listing the packages whose install script produces their binding file runs those scripts
+      # back, without turning scripts on for everything.
+      - name: Rebuild packages that need their install scripts
+        if: steps.branch.outputs.exists == 'false' && inputs.rebuild_packages != ''
+        env:
+          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
+        run: npm rebuild $REBUILD_PACKAGES
+
+      - name: Detect available scripts
+        id: scripts
+        if: steps.branch.outputs.exists == 'false'
+        run: |
+          for script in build lint prettier test; do
+            available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
+            echo "$script is available: $available"
+            echo "$script=$available" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Build
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.build == 'true'
+        run: npm run build
+
+      - name: Lint
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.lint == 'true'
+        run: npm run lint
+
+      - name: Prettier
+        if: steps.branch.outputs.exists == 'false' && steps.scripts.outputs.prettier == 'true'
+        run: npm run prettier
+
+      - name: Test
+        if: steps.branch.outputs.exists == 'false' && inputs.run_tests && steps.scripts.outputs.test == 'true'
+        run: npm test
+
+      - name: Create pull request
+        if: steps.branch.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/npm-audit-fix
+        run: |
+          if git diff --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add -A
+          git commit -m "chore(deps): apply npm audit fix"
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(deps): apply npm audit fix" \
+            --body "\`npm audit fix\` 실행 결과임. 선언된 dependency 범위 안의 수정만 포함되며, 자동으로 고칠 수 없는 취약점은 로컬에서 \`npm audit\` 으로 확인해야 함."
