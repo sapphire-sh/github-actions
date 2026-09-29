@@ -9,7 +9,8 @@
 	"scripts": {
 		"bootstrap": "sapphire-bootstrap",
 		"prettier": "prettier --check .",
-		"prettier:fix": "prettier --write ."
+		"prettier:fix": "prettier --write .",
+		"test": "node --test \".github/scripts/*.test.js\""
 	},
 	"devDependencies": {
 		"@sapphire-sh/utils": "^2.6.0",

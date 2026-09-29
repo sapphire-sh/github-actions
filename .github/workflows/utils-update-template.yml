@@ -38,6 +38,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
+
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
           node-version: 26
@@ -50,21 +55,7 @@ jobs:
           latest="$(npm view @sapphire-sh/utils version)"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
           echo "branch=chore/sapphire-utils-$latest" >> "$GITHUB_OUTPUT"
-          outdated=false
-          for manifest in $MANIFESTS; do
-            current="$(MANIFEST="$manifest" node -p "const p = require(require('node:path').resolve(process.env.MANIFEST)); const r = p.dependencies?.['@sapphire-sh/utils'] ?? p.devDependencies?.['@sapphire-sh/utils'] ?? ''; r.replace(/^[^0-9]*/, '')")"
-            if [ -z "$current" ]; then
-              echo "@sapphire-sh/utils is not a dependency of $manifest"
-              exit 1
-            fi
-            if [ "$latest" = "$current" ]; then
-              echo "$manifest is already up to date ($current)"
-            else
-              echo "$manifest has an update available ($current -> $latest)"
-              outdated=true
-            fi
-          done
-          echo "outdated=$outdated" >> "$GITHUB_OUTPUT"
+          node .github-actions-shared/.github/scripts/utils-update-manifests.js check "$latest" $MANIFESTS >> "$GITHUB_OUTPUT"
 
   update:
     needs: [check]
@@ -75,6 +66,11 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
 
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -98,27 +94,13 @@ jobs:
         env:
           LATEST: ${{ needs.check.outputs.latest }}
           MANIFESTS: ${{ inputs.manifests }}
-        run: |
-          node -e "
-            const fs = require('node:fs');
-            const name = '@sapphire-sh/utils';
-            const version = process.env.LATEST;
-            for (const manifestPath of process.env.MANIFESTS.split(/\s+/).filter(Boolean)) {
-              const text = fs.readFileSync(manifestPath, 'utf8');
-              const manifest = JSON.parse(text);
-              for (const field of ['dependencies', 'devDependencies']) {
-                const range = manifest[field]?.[name];
-                if (range === undefined) {
-                  continue;
-                }
-                manifest[field][name] = range.replace(/^([^0-9]*).*\$/, '\$1') + version;
-              }
-              // Rewriting with the indentation the file already uses keeps a tab-indented manifest
-              // passing the prettier check that runs later in this job.
-              const indent = text.match(/^[ \t]+/m)?.[0] ?? 2;
-              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, indent) + '\n');
-            }
-          "
+        run: node .github-actions-shared/.github/scripts/utils-update-manifests.js bump "$LATEST" $MANIFESTS
+
+      # The shared checkout sits inside the caller's working tree, where the pull request step's
+      # git add would pick it up, so it goes as soon as the bump no longer needs it.
+      - name: Remove the shared scripts checkout
+        if: steps.branch.outputs.exists == 'false'
+        run: rm -rf .github-actions-shared
 
       - name: Install dependencies
         if: steps.branch.outputs.exists == 'false'
