@@ -37,7 +37,7 @@ jobs:
       - run: npm ci
 
       - name: Set userscript version
-        run: echo "USERSCRIPT_VERSION=$(date +%s)" >> "$GITHUB_ENV"
+        run: echo "USERSCRIPT_VERSION=$(node -p 'Date.now()')" >> "$GITHUB_ENV"
 
       - run: npm run build
         working-directory: ${{ inputs.working_directory }}

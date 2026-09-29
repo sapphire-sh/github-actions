@@ -176,7 +176,7 @@ jobs:
 
 **Jobs:**
 
-1. **publish** — Runs `npm ci` on Node.js 26, records the current Unix time as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached
+1. **publish** — Runs `npm ci` on Node.js 26, records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached
 
 Notifications are left to the caller, which can report its checks and the publish result together.
 
