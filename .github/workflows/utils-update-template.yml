@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: ''
+      manifests:
+        required: false
+        type: string
+        default: package.json
 
 permissions: {}
 
@@ -40,22 +44,27 @@ jobs:
 
       - name: Resolve versions
         id: resolve
+        env:
+          MANIFESTS: ${{ inputs.manifests }}
         run: |
           latest="$(npm view @sapphire-sh/utils version)"
-          current="$(node -p "const p = require('./package.json'); const r = p.dependencies?.['@sapphire-sh/utils'] ?? p.devDependencies?.['@sapphire-sh/utils'] ?? ''; r.replace(/^[^0-9]*/, '')")"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
           echo "branch=chore/sapphire-utils-$latest" >> "$GITHUB_OUTPUT"
-          if [ -z "$current" ]; then
-            echo "@sapphire-sh/utils is not a dependency of this repository"
-            exit 1
-          fi
-          if [ "$latest" = "$current" ]; then
-            echo "already up to date ($current)"
-            echo "outdated=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "update available ($current -> $latest)"
-            echo "outdated=true" >> "$GITHUB_OUTPUT"
-          fi
+          outdated=false
+          for manifest in $MANIFESTS; do
+            current="$(MANIFEST="$manifest" node -p "const p = require(require('node:path').resolve(process.env.MANIFEST)); const r = p.dependencies?.['@sapphire-sh/utils'] ?? p.devDependencies?.['@sapphire-sh/utils'] ?? ''; r.replace(/^[^0-9]*/, '')")"
+            if [ -z "$current" ]; then
+              echo "@sapphire-sh/utils is not a dependency of $manifest"
+              exit 1
+            fi
+            if [ "$latest" = "$current" ]; then
+              echo "$manifest is already up to date ($current)"
+            else
+              echo "$manifest has an update available ($current -> $latest)"
+              outdated=true
+            fi
+          done
+          echo "outdated=$outdated" >> "$GITHUB_OUTPUT"
 
   update:
     needs: [check]
@@ -88,29 +97,37 @@ jobs:
         if: steps.branch.outputs.exists == 'false'
         env:
           LATEST: ${{ needs.check.outputs.latest }}
+          MANIFESTS: ${{ inputs.manifests }}
         run: |
           node -e "
             const fs = require('node:fs');
             const name = '@sapphire-sh/utils';
             const version = process.env.LATEST;
-            const text = fs.readFileSync('package.json', 'utf8');
-            const manifest = JSON.parse(text);
-            for (const field of ['dependencies', 'devDependencies']) {
-              const range = manifest[field]?.[name];
-              if (range === undefined) {
-                continue;
+            for (const manifestPath of process.env.MANIFESTS.split(/\s+/).filter(Boolean)) {
+              const text = fs.readFileSync(manifestPath, 'utf8');
+              const manifest = JSON.parse(text);
+              for (const field of ['dependencies', 'devDependencies']) {
+                const range = manifest[field]?.[name];
+                if (range === undefined) {
+                  continue;
+                }
+                manifest[field][name] = range.replace(/^([^0-9]*).*\$/, '\$1') + version;
               }
-              manifest[field][name] = range.replace(/^([^0-9]*).*\$/, '\$1') + version;
+              // Rewriting with the indentation the file already uses keeps a tab-indented manifest
+              // passing the prettier check that runs later in this job.
+              const indent = text.match(/^[ \t]+/m)?.[0] ?? 2;
+              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, indent) + '\n');
             }
-            // Rewriting with the indentation the file already uses keeps a tab-indented manifest
-            // passing the prettier check that runs later in this job.
-            const indent = text.match(/^[ \t]+/m)?.[0] ?? 2;
-            fs.writeFileSync('package.json', JSON.stringify(manifest, null, indent) + '\n');
           "
 
       - name: Install dependencies
         if: steps.branch.outputs.exists == 'false'
-        run: npm install --ignore-scripts
+        env:
+          MANIFESTS: ${{ inputs.manifests }}
+        run: |
+          for manifest in $MANIFESTS; do
+            (cd "$(dirname "$manifest")" && npm install --ignore-scripts)
+          done
 
       # This job runs directly on the runner host, so the install above keeps lifecycle scripts
       # off for the whole dependency tree. Listing the packages whose install script produces
