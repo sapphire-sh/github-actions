@@ -180,12 +180,12 @@ jobs:
 
 **Jobs:**
 
-1. **fix** — Stops when the `chore/npm-audit-fix` branch already exists. Otherwise runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request when the fix changed anything, with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as its body
+1. **fix** — Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise
 
 **Notes:**
 
 - `--force` is not passed, so only fixes inside the declared dependency ranges are applied; vulnerabilities that need a range change remain and do not fail the run
-- While the `chore/npm-audit-fix` branch exists, later runs stop without updating it, so the next fixes arrive once that branch is merged or deleted
+- Every run rebuilds the `chore/npm-audit-fix` branch from the commit it checked out, so commits pushed to it by hand are overwritten, and a pull request closed without merging is opened again by the next run whose fix changes anything
 - Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
 - Pull requests opened with `GITHUB_TOKEN` do not trigger other workflows, so CI does not run on them automatically
 
