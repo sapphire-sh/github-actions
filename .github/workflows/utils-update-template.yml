@@ -34,7 +34,6 @@ jobs:
     outputs:
       outdated: ${{ steps.resolve.outputs.outdated }}
       latest: ${{ steps.resolve.outputs.latest }}
-      branch: ${{ steps.resolve.outputs.branch }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
@@ -54,7 +53,6 @@ jobs:
         run: |
           latest="$(npm view @sapphire-sh/utils version)"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
-          echo "branch=chore/sapphire-utils-$latest" >> "$GITHUB_OUTPUT"
           node .github-actions-shared/.github/scripts/utils-update-manifests.js check "$latest" $MANIFESTS >> "$GITHUB_OUTPUT"
 
   update:
@@ -77,27 +75,13 @@ jobs:
           node-version: 26
           cache: npm
 
-      - name: Check for an existing pull request branch
-        id: branch
-        env:
-          BRANCH: ${{ needs.check.outputs.branch }}
-        run: |
-          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
-            echo "branch $BRANCH already exists"
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Bump dependency version
-        if: steps.branch.outputs.exists == 'false'
         env:
           LATEST: ${{ needs.check.outputs.latest }}
           MANIFESTS: ${{ inputs.manifests }}
         run: node .github-actions-shared/.github/scripts/utils-update-manifests.js bump "$LATEST" $MANIFESTS
 
       - name: Install dependencies
-        if: steps.branch.outputs.exists == 'false'
         env:
           MANIFESTS: ${{ inputs.manifests }}
         run: |
@@ -109,10 +93,28 @@ jobs:
       # off for the whole dependency tree. Listing the packages whose install script produces
       # their binding file runs those scripts back, without turning scripts on for everything.
       - name: Rebuild packages that need their install scripts
-        if: steps.branch.outputs.exists == 'false' && inputs.rebuild_packages != ''
+        if: inputs.rebuild_packages != ''
         env:
           REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
         run: npm rebuild $REBUILD_PACKAGES
+
+      - name: Read installed version
+        id: installed
+        env:
+          MANIFESTS: ${{ inputs.manifests }}
+        run: node .github-actions-shared/.github/scripts/utils-update-manifests.js installed $MANIFESTS >> "$GITHUB_OUTPUT"
+
+      - name: Check for an existing pull request branch
+        id: branch
+        env:
+          BRANCH: chore/sapphire-utils-${{ steps.installed.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null; then
+            echo "branch $BRANCH already exists"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Apply shared configuration
         if: steps.branch.outputs.exists == 'false'
@@ -167,8 +169,8 @@ jobs:
         if: steps.branch.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ needs.check.outputs.branch }}
-          LATEST: ${{ needs.check.outputs.latest }}
+          BRANCH: chore/sapphire-utils-${{ steps.installed.outputs.version }}
+          VERSION: ${{ steps.installed.outputs.version }}
           MANIFESTS: ${{ inputs.manifests }}
         run: |
           if git diff --quiet; then
@@ -181,8 +183,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
           git add -A
-          git commit -m "chore(deps): bump @sapphire-sh/utils to $LATEST"
+          git commit -m "chore(deps): bump @sapphire-sh/utils to $VERSION"
           git push -u origin "$BRANCH"
           gh pr create \
-            --title "chore(deps): bump @sapphire-sh/utils to $LATEST" \
+            --title "chore(deps): bump @sapphire-sh/utils to $VERSION" \
             --body "$body"

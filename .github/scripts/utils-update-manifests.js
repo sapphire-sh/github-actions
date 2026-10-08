@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const PACKAGE_NAME = '@sapphire-sh/utils';
 
@@ -35,6 +36,11 @@ export const bumpManifests = (manifestPaths, version) => {
 	}
 };
 
+export const readInstalledVersion = ([manifestPath]) =>
+	JSON.parse(readFileSync(join(dirname(manifestPath), 'package-lock.json'), 'utf8')).packages[
+		`node_modules/${PACKAGE_NAME}`
+	].version;
+
 if (import.meta.filename === process.argv[1]) {
 	const [command, version, ...manifestPaths] = process.argv.slice(2);
 	if (command === 'check') {
@@ -49,6 +55,9 @@ if (import.meta.filename === process.argv[1]) {
 		process.stdout.write(`outdated=${isOutdated(currentVersions, version)}\n`);
 	} else if (command === 'bump') {
 		bumpManifests(manifestPaths, version);
+	} else if (command === 'installed') {
+		const [, ...manifestPaths] = process.argv.slice(2);
+		process.stdout.write(`version=${readInstalledVersion(manifestPaths)}\n`);
 	} else {
 		throw new Error(`unknown command: ${command}`);
 	}

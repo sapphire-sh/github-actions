@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { bumpManifests, isOutdated, readCurrentVersions } from './utils-update-manifests.js';
+import { bumpManifests, isOutdated, readCurrentVersions, readInstalledVersion } from './utils-update-manifests.js';
 
 let directory;
 
@@ -61,6 +61,18 @@ describe('bumpManifests', () => {
 		assert.equal(
 			readFileSync(manifestPath, 'utf8'),
 			'{\n\t"name": "example",\n\t"devDependencies": {\n\t\t"@sapphire-sh/utils": "^2.6.0"\n\t}\n}\n',
+		);
+	});
+});
+
+describe('readInstalledVersion', () => {
+	it('reads the installed version from the lockfile beside the first manifest', () => {
+		mkdirSync(join(directory, 'web'));
+		writeManifest('package-lock.json', { packages: { 'node_modules/@sapphire-sh/utils': { version: '2.8.0' } } });
+		writeManifest('web/package-lock.json', { packages: { 'node_modules/@sapphire-sh/utils': { version: '2.9.0' } } });
+		assert.equal(
+			readInstalledVersion([join(directory, 'web', 'package.json'), join(directory, 'package.json')]),
+			'2.9.0',
 		);
 	});
 });
