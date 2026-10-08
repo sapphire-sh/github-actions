@@ -180,7 +180,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix** — Stops when the `chore/npm-audit-fix` branch already exists. Otherwise runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request when the fix changed anything
+1. **fix** — Stops when the `chore/npm-audit-fix` branch already exists. Otherwise runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request when the fix changed anything, with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as its body
 
 **Notes:**
 

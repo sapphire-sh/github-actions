@@ -94,6 +94,14 @@ jobs:
         if: steps.branch.outputs.exists == 'false' && inputs.run_tests && steps.scripts.outputs.test == 'true'
         run: npm test
 
+      # The shared checkout comes after the checks so that lint and prettier never see it, and the
+      # pull request step removes it before its git add.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: steps.branch.outputs.exists == 'false'
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
+
       - name: Create pull request
         if: steps.branch.outputs.exists == 'false'
         env:
@@ -104,6 +112,8 @@ jobs:
             echo "no changes to commit"
             exit 0
           fi
+          body="$(node .github-actions-shared/.github/scripts/npm-audit-fix-summary.js)"
+          rm -rf .github-actions-shared
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
@@ -112,4 +122,4 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create \
             --title "chore(deps): apply npm audit fix" \
-            --body "\`npm audit fix\` 실행 결과임. 선언된 dependency 범위 안의 수정만 포함되며, 자동으로 고칠 수 없는 취약점은 로컬에서 \`npm audit\` 으로 확인해야 함."
+            --body "$body"
