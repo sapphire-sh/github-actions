@@ -96,12 +96,6 @@ jobs:
           MANIFESTS: ${{ inputs.manifests }}
         run: node .github-actions-shared/.github/scripts/utils-update-manifests.js bump "$LATEST" $MANIFESTS
 
-      # The shared checkout sits inside the caller's working tree, where the pull request step's
-      # git add would pick it up, so it goes as soon as the bump no longer needs it.
-      - name: Remove the shared scripts checkout
-        if: steps.branch.outputs.exists == 'false'
-        run: rm -rf .github-actions-shared
-
       - name: Install dependencies
         if: steps.branch.outputs.exists == 'false'
         env:
@@ -127,10 +121,13 @@ jobs:
       # GITHUB_TOKEN cannot push workflow files, so those changes are left to a local bootstrap run.
       - name: Discard workflow file changes
         if: steps.branch.outputs.exists == 'false'
-        run: |
-          if [ -d .github/workflows ]; then
-            git checkout -- .github/workflows
-          fi
+        run: node .github-actions-shared/.github/scripts/utils-update-workflows.js
+
+      # The shared checkout sits inside the caller's working tree, where the pull request step's
+      # git add would pick it up, so it goes once the workflow discard step has run its script.
+      - name: Remove the shared scripts checkout
+        if: steps.branch.outputs.exists == 'false'
+        run: rm -rf .github-actions-shared
 
       - name: Detect available scripts
         id: scripts
