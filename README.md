@@ -257,7 +257,7 @@ jobs:
 **Jobs:**
 
 1. **check** — Compares the `@sapphire-sh/utils` version pinned in each `manifests` entry with the latest published version, fails when an entry does not depend on it, and stops when every entry matches
-2. **update** — Bumps the pinned version in each `manifests` entry, runs `npm install --ignore-scripts` in each entry's directory and `npm run bootstrap` at the root (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request. Skipped when a branch for that version already exists
+2. **update** — Bumps the pinned version in each `manifests` entry, runs `npm install --ignore-scripts` in each entry's directory and `npm run bootstrap` at the root (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request with a table of the changed packages (`Package`, `From`, `To`, `Required by`, preceded by `Lockfile` when `manifests` lists more than one entry) as its body. Skipped when a branch for that version already exists
 
 **Notes:**
 

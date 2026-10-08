@@ -2,9 +2,9 @@
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
-const LOCKFILE_PATH = 'package-lock.json';
+const LOCKFILE_NAME = 'package-lock.json';
 const NODE_MODULES_SEGMENT = 'node_modules/';
 const ROOT_KEY = '';
 
@@ -29,11 +29,11 @@ const mergeKeys = (beforeKeys, afterKeys) => {
 	return keys;
 };
 
-export const summarizeLockfileChanges = (directory) => {
+const lockfileRows = (directory, lockfilePath) => {
 	const before = JSON.parse(
-		execFileSync('git', ['show', `HEAD:${LOCKFILE_PATH}`], { cwd: directory, encoding: 'utf8' }),
+		execFileSync('git', ['show', `HEAD:${lockfilePath}`], { cwd: directory, encoding: 'utf8' }),
 	).packages;
-	const after = JSON.parse(readFileSync(join(directory, LOCKFILE_PATH), 'utf8')).packages;
+	const after = JSON.parse(readFileSync(join(directory, lockfilePath), 'utf8')).packages;
 
 	const requiredBy = (name) =>
 		Object.entries(after)
@@ -41,20 +41,28 @@ export const summarizeLockfileChanges = (directory) => {
 			.map(([key]) => `\`${packageName(key)}\``)
 			.join(', ');
 
-	const rows = mergeKeys(Object.keys(before), Object.keys(after))
+	return mergeKeys(Object.keys(before), Object.keys(after))
 		.filter((key) => key !== ROOT_KEY && before[key]?.version !== after[key]?.version)
 		.map((key) => {
 			const name = packageName(key);
 			const from = before[key]?.version ?? '';
 			const to = after[key]?.version ?? '';
-			return formatRow([`\`${name}\``, from, to, Object.hasOwn(before, key) ? '' : requiredBy(name)]);
+			return [`\`${name}\``, from, to, Object.hasOwn(before, key) ? '' : requiredBy(name)];
 		});
+};
 
-	return [formatRow(['Package', 'From', 'To', 'Required by']), formatRow(['---', '---', '---', '---']), ...rows]
-		.map((row) => `${row}\n`)
-		.join('');
+export const summarizeLockfileChanges = (directory, manifestPaths = ['package.json']) => {
+	const lockfilePaths = manifestPaths.map((manifestPath) => join(dirname(manifestPath), LOCKFILE_NAME));
+	const showLockfile = lockfilePaths.length > 1;
+	const header = [...(showLockfile ? ['Lockfile'] : []), 'Package', 'From', 'To', 'Required by'];
+	const rows = lockfilePaths.flatMap((lockfilePath) =>
+		lockfileRows(directory, lockfilePath).map((cells) => (showLockfile ? [lockfilePath, ...cells] : cells)),
+	);
+
+	return [header, header.map(() => '---'), ...rows].map((cells) => `${formatRow(cells)}\n`).join('');
 };
 
 if (import.meta.filename === process.argv[1]) {
-	process.stdout.write(summarizeLockfileChanges(process.cwd()));
+	const manifestPaths = process.argv.slice(2);
+	process.stdout.write(summarizeLockfileChanges(process.cwd(), manifestPaths.length > 0 ? manifestPaths : undefined));
 }

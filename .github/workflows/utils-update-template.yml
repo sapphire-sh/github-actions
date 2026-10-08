@@ -155,17 +155,28 @@ jobs:
         if: steps.branch.outputs.exists == 'false' && inputs.run_tests && steps.scripts.outputs.test == 'true'
         run: npm test
 
+      # The shared checkout comes back after the checks so that lint and prettier never see it, and
+      # the pull request step removes it again before its git add.
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        if: steps.branch.outputs.exists == 'false'
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
+
       - name: Create pull request
         if: steps.branch.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: ${{ needs.check.outputs.branch }}
           LATEST: ${{ needs.check.outputs.latest }}
+          MANIFESTS: ${{ inputs.manifests }}
         run: |
           if git diff --quiet; then
             echo "no changes to commit"
             exit 0
           fi
+          body="$(node .github-actions-shared/.github/scripts/dependency-summary.js $MANIFESTS)"
+          rm -rf .github-actions-shared
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git switch -c "$BRANCH"
@@ -174,4 +185,4 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create \
             --title "chore(deps): bump @sapphire-sh/utils to $LATEST" \
-            --body "@sapphire-sh/utils $LATEST 반영 및 \`npm run bootstrap\` 실행 결과임. workflow 파일 변경은 제외되어 있으므로 필요 시 로컬에서 bootstrap 을 실행해야 함."
+            --body "$body"
