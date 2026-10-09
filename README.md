@@ -40,7 +40,7 @@ jobs:
 | `image_name`       | Yes      | —                         | Docker image name (appended to registry host)                                                                                                                 |
 | `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building, with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty |
 | `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                                        |
-| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets)                                                                         |
+| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets); ignored on `pull_request` events, which never push or redeploy         |
 | `runner`           | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                                   |
 | `runner_amd64`     | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                                               |
 | `runner_arm64`     | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                                               |
@@ -63,7 +63,7 @@ jobs:
 **Jobs:**
 
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
-2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it
+2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
 3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
 4. **merge** — Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy. Tags: short SHA + `latest` on the default branch
 5. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
@@ -187,7 +187,7 @@ jobs:
 - `--force` is not passed, so only fixes inside the declared dependency ranges are applied; vulnerabilities that need a range change remain and do not fail the run
 - Every run rebuilds the `chore/npm-audit-fix` branch from the commit it checked out, so commits pushed to it by hand are overwritten, and a pull request closed without merging is opened again by the next run whose fix changes anything
 - Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
-- Pull requests opened with `GITHUB_TOKEN` do not trigger other workflows, so CI does not run on them automatically
+- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
 
 ---
 
@@ -263,4 +263,4 @@ jobs:
 
 - Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
 - `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request — apply those by running `npm run bootstrap` locally
-- Pull requests opened with `GITHUB_TOKEN` do not trigger other workflows, so CI does not run on them automatically
+- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_

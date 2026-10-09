@@ -88,10 +88,27 @@ jobs:
   # matrix below would then have an empty value to expand.
   prepare:
     runs-on: ${{ inputs.runner }}
-    permissions: {}
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      push: ${{ steps.push.outputs.push }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 26
+
+      - name: Decide whether to push
+        id: push
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_IMAGE: ${{ inputs.push_image }}
+        run: node .github/scripts/docker-ci-push.js >> "$GITHUB_OUTPUT"
+
       # Each requested platform becomes its own build job on the runner that is native to it,
       # so the matrix follows the platforms input instead of being fixed to both architectures.
       - name: Build platform matrix
@@ -132,7 +149,7 @@ jobs:
       # A self-hosted host keeps its registry and Tailscale configuration between runs, so both
       # steps below are scoped to the ephemeral github-hosted runners that start from a clean image.
       - name: Configure insecure registry
-        if: inputs.push_image && runner.environment == 'github-hosted'
+        if: needs.prepare.outputs.push == 'true' && runner.environment == 'github-hosted'
         env:
           REGISTRY_HOST: ${{ secrets.REGISTRY_HOST }}
         run: |
@@ -140,7 +157,7 @@ jobs:
           sudo systemctl restart docker
 
       - name: Connect to Tailscale
-        if: inputs.push_image && runner.environment == 'github-hosted'
+        if: needs.prepare.outputs.push == 'true' && runner.environment == 'github-hosted'
         uses: tailscale/github-action@4e4c49acaa9818630ce0bd7a564372c17e33fb4d # v2
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
@@ -191,7 +208,7 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }},push-by-digest=true,name-canonical=true,push=${{ inputs.push_image }}
+          outputs: type=image,name=${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }},push-by-digest=true,name-canonical=true,push=${{ needs.prepare.outputs.push }}
           provenance: false
           # Self-hosted runners reuse the persistent buildx builder's local cache, so the GHA
           # remote cache backend (a network round-trip that would only slow them down) is scoped
@@ -200,7 +217,7 @@ jobs:
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max' || '' }}
 
       - name: Export digest
-        if: inputs.push_image
+        if: needs.prepare.outputs.push == 'true'
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
         run: |
@@ -208,7 +225,7 @@ jobs:
           touch "$RUNNER_TEMP/digests/${DIGEST#sha256:}"
 
       - name: Upload digest
-        if: inputs.push_image
+        if: needs.prepare.outputs.push == 'true'
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: digests-${{ matrix.slug }}
@@ -217,8 +234,8 @@ jobs:
           retention-days: 1
 
   merge:
-    needs: [build-and-push]
-    if: inputs.build_image && inputs.push_image && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    needs: [prepare, build-and-push]
+    if: inputs.build_image && needs.prepare.outputs.push == 'true' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: read
