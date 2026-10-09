@@ -10,6 +10,7 @@ import { publishPullRequest } from './npm-audit-fix-publish.js';
 const BRANCH = 'chore/npm-audit-fix';
 const TITLE = 'chore(deps): apply npm audit fix';
 const BODY = '| Package | From | To | Required by |\n';
+const ASSIGNEE = 'repository-owner';
 
 let root;
 let origin;
@@ -61,7 +62,7 @@ describe('publishPullRequest', () => {
 	it('does nothing when the working tree has no changes', () => {
 		const { calls, runGh } = recordGh([]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, runGh });
+		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
 
 		assert.equal(originGit('for-each-ref', '--format=%(refname)', 'refs/heads'), '');
 		assert.deepEqual(calls, []);
@@ -71,13 +72,13 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.1" }\n');
 		const { calls, runGh } = recordGh([]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, runGh });
+		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
 
 		assert.equal(originGit('show', `${BRANCH}:package-lock.json`), '{ "version": "1.0.1" }\n');
 		assert.equal(originGit('log', '--format=%s', `${BRANCH}`), `${TITLE}\ninitial\n`);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'create', '--title', TITLE, '--body', BODY],
+			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', ASSIGNEE],
 		]);
 	});
 
@@ -90,13 +91,13 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.2" }\n');
 		const { calls, runGh } = recordGh([{ number: 7 }]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, runGh });
+		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
 
 		assert.equal(originGit('show', `${BRANCH}:package-lock.json`), '{ "version": "1.0.2" }\n');
 		assert.equal(originGit('log', '--format=%s', `${BRANCH}`), `${TITLE}\ninitial\n`);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'edit', '7', '--body', BODY],
+			['pr', 'edit', '7', '--body', BODY, '--add-assignee', ASSIGNEE],
 		]);
 	});
 });

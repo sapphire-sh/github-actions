@@ -61,6 +61,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: write
+      issues: write
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -172,6 +173,7 @@ jobs:
           BRANCH: chore/sapphire-utils-${{ steps.installed.outputs.version }}
           VERSION: ${{ steps.installed.outputs.version }}
           MANIFESTS: ${{ inputs.manifests }}
+          ASSIGNEE: ${{ github.repository_owner }}
         run: |
           if git diff --quiet; then
             echo "no changes to commit"
@@ -187,4 +189,5 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create \
             --title "chore(deps): bump @sapphire-sh/utils to $VERSION" \
-            --body "$body"
+            --body "$body" \
+            --assignee "$ASSIGNEE"

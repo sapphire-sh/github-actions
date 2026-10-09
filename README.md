@@ -180,7 +180,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix** — Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise
+1. **fix** — Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the repository owner to the pull request in both cases
 
 **Notes:**
 
@@ -257,7 +257,7 @@ jobs:
 **Jobs:**
 
 1. **check** — Compares the `@sapphire-sh/utils` version pinned in each `manifests` entry with the latest published version, fails when an entry does not depend on it, and stops when every entry matches
-2. **update** — Bumps the pinned version in each `manifests` entry, runs `npm install --ignore-scripts` in each entry's directory and `npm run bootstrap` at the root (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request with a table of the changed packages (`Package`, `From`, `To`, `Required by`, preceded by `Lockfile` when `manifests` lists more than one entry) as its body. Stops after the install when a branch named after the `@sapphire-sh/utils` version installed in the first `manifests` entry's directory already exists
+2. **update** — Bumps the pinned version in each `manifests` entry, runs `npm install --ignore-scripts` in each entry's directory and `npm run bootstrap` at the root (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request with a table of the changed packages (`Package`, `From`, `To`, `Required by`, preceded by `Lockfile` when `manifests` lists more than one entry) as its body, assigned to the repository owner. Stops after the install when a branch named after the `@sapphire-sh/utils` version installed in the first `manifests` entry's directory already exists
 
 **Notes:**
 

@@ -27,6 +27,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: write
+      issues: write
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -91,9 +92,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: chore/npm-audit-fix
           TITLE: 'chore(deps): apply npm audit fix'
+          ASSIGNEE: ${{ github.repository_owner }}
         run: |
           echo '.github-actions-shared/' >> .git/info/exclude
           body="$(node .github-actions-shared/.github/scripts/dependency-summary.js)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node .github-actions-shared/.github/scripts/npm-audit-fix-publish.js "$BRANCH" "$TITLE" <<< "$body"
+          node .github-actions-shared/.github/scripts/npm-audit-fix-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" <<< "$body"
