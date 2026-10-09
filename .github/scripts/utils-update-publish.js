@@ -11,18 +11,14 @@ export const publishPullRequest = (directory, { branch, title, body, assignee, r
 		console.log('no changes to commit');
 		return;
 	}
-	git(directory, 'switch', '-C', branch);
+	git(directory, 'switch', '-c', branch);
 	git(directory, 'add', '-A');
 	git(directory, 'commit', '-m', title);
-	git(directory, 'push', '--force', '-u', 'origin', branch);
+	git(directory, 'push', '-u', 'origin', branch);
 
-	const openPullRequests = JSON.parse(runGh(['pr', 'list', '--head', branch, '--state', 'open', '--json', 'number']));
-	if (openPullRequests.length === 0) {
-		createPullRequest(runGh, ['--title', title, '--body', body, '--assignee', assignee]);
-		return;
-	}
-	const [{ number }] = openPullRequests;
-	runGh(['pr', 'edit', String(number), '--body', body, '--add-assignee', assignee]);
+	createPullRequest(runGh, ['--title', title, '--body', body, '--assignee', assignee], () => {
+		git(directory, 'push', 'origin', '--delete', branch);
+	});
 };
 
 if (import.meta.filename === process.argv[1]) {

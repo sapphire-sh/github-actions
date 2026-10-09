@@ -186,7 +186,7 @@ jobs:
 
 - `--force` is not passed, so only fixes inside the declared dependency ranges are applied; vulnerabilities that need a range change remain and do not fail the run
 - Every run rebuilds the `chore/npm-audit-fix` branch from the commit it checked out, so commits pushed to it by hand are overwritten, and a pull request closed without merging is opened again by the next run whose fix changes anything
-- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
+- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
 - Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
 
@@ -262,7 +262,7 @@ jobs:
 
 **Notes:**
 
-- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings
+- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it, deletes the branch it pushed and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
 - `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request — apply those by running `npm run bootstrap` locally
 - Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_

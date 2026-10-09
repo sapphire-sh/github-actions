@@ -126,8 +126,8 @@ jobs:
         if: steps.branch.outputs.exists == 'false'
         run: node .github-actions-shared/.github/scripts/utils-update-workflows.js
 
-      # The shared checkout sits inside the caller's working tree, where the pull request step's
-      # git add would pick it up, so it goes once the workflow discard step has run its script.
+      # The shared checkout sits inside the caller's working tree, where lint and prettier would
+      # read it, so it goes once the workflow discard step has run its script.
       - name: Remove the shared scripts checkout
         if: steps.branch.outputs.exists == 'false'
         run: rm -rf .github-actions-shared
@@ -159,7 +159,7 @@ jobs:
         run: npm test
 
       # The shared checkout comes back after the checks so that lint and prettier never see it, and
-      # the pull request step removes it again before its git add.
+      # the pull request step lists it in .git/info/exclude so that its commit leaves it out.
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: steps.branch.outputs.exists == 'false'
         with:
@@ -171,23 +171,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BRANCH: chore/sapphire-utils-${{ steps.installed.outputs.version }}
-          VERSION: ${{ steps.installed.outputs.version }}
+          TITLE: 'chore(deps): bump @sapphire-sh/utils to ${{ steps.installed.outputs.version }}'
           MANIFESTS: ${{ inputs.manifests }}
           ASSIGNEE: ${{ github.repository_owner }}
         run: |
-          if git diff --quiet; then
-            echo "no changes to commit"
-            exit 0
-          fi
+          echo '.github-actions-shared/' >> .git/info/exclude
           body="$(node .github-actions-shared/.github/scripts/dependency-summary.js $MANIFESTS)"
-          rm -rf .github-actions-shared
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git switch -c "$BRANCH"
-          git add -A
-          git commit -m "chore(deps): bump @sapphire-sh/utils to $VERSION"
-          git push -u origin "$BRANCH"
-          gh pr create \
-            --title "chore(deps): bump @sapphire-sh/utils to $VERSION" \
-            --body "$body" \
-            --assignee "$ASSIGNEE"
+          node .github-actions-shared/.github/scripts/utils-update-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" <<< "$body"
