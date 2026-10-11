@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { discardWorkflowChanges } from './utils-update-workflows.js';
+import { discardWorkflowChanges } from './discard-workflow-changes.js';
 
 let directory;
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), 'utils-update-workflows-'));
+	directory = mkdtempSync(join(tmpdir(), 'discard-workflow-changes-'));
 	git('init', '--quiet');
 });
 
