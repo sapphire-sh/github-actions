@@ -13,7 +13,7 @@
 		"test": "node --test \".github/scripts/*.test.js\""
 	},
 	"devDependencies": {
-		"@sapphire-sh/utils": "^2.6.0",
+		"@sapphire-sh/utils": "^2.11.0",
 		"prettier": "^3.6.2",
 		"prettier-plugin-organize-imports": "^4.3.0"
 	}
