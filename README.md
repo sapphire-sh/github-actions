@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows take a `runner` input. It defaults to `self-hosted`, except on the shared config update, utils update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the shared config update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -271,48 +271,4 @@ jobs:
 - Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
 - `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
-- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
-
----
-
-### Shared utils Update ([`.github/workflows/utils-update-template.yml`](.github/workflows/utils-update-template.yml))
-
-A reusable workflow that opens a pull request whenever a newer `@sapphire-sh/utils` is published.
-
-**Usage:**
-
-```yaml
-on:
-  schedule:
-    - cron: '0 0 * * *'
-  workflow_dispatch:
-
-jobs:
-  utils-update:
-    uses: sapphire-sh/github-actions/.github/workflows/utils-update-template.yml@main
-    with:
-      run_tests: true # optional, default: false
-```
-
-**Inputs:**
-
-| Name               | Required | Default         | Description                                                                                                                                                                                |
-| ------------------ | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `run_tests`        | No       | `false`         | Run `npm test` before opening the pull request                                                                                                                                             |
-| `runner`           | No       | `ubuntu-latest` | Runner that all jobs run on                                                                                                                                                                |
-| `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after `npm install --ignore-scripts`, so their install scripts run (e.g. a native addon's binding file)                              |
-| `manifests`        | No       | `package.json`  | Space-separated `package.json` paths relative to the repository root whose `@sapphire-sh/utils` version is checked and bumped; `npm install --ignore-scripts` runs in each one's directory |
-
-**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
-
-**Jobs:**
-
-1. **check** — Compares the `@sapphire-sh/utils` version pinned in each `manifests` entry with the latest published version, fails when an entry does not depend on it, and stops when every entry matches
-2. **update** — Bumps the pinned version in each `manifests` entry, runs `npm install --ignore-scripts` in each entry's directory and `npm run bootstrap` at the root (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and opens a pull request with a table of the changed packages (`Package`, `From`, `To`, `Required by`, preceded by `Lockfile` when `manifests` lists more than one entry) as its body, assigned to the repository owner. Stops after the install when a branch named after the `@sapphire-sh/utils` version installed in the first `manifests` entry's directory already exists
-
-**Notes:**
-
-- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it, deletes the branch it pushed and fails
-- The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
-- `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request — apply those by running `npm run bootstrap` locally
 - Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
