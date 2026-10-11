@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows take a `runner` input. It defaults to `self-hosted`, except on the utils update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the shared config update, utils update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -222,6 +222,56 @@ jobs:
 1. **publish** — Runs `npm ci` on Node.js 26, records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached
 
 Notifications are left to the caller, which can report its checks and the publish result together.
+
+---
+
+### Shared Config Update ([`.github/workflows/shared-config-update-template.yml`](.github/workflows/shared-config-update-template.yml))
+
+A reusable workflow that applies the shared configuration of the installed `@sapphire-sh/utils` with `npm run bootstrap` and opens a pull request with the result.
+
+**Usage:**
+
+```yaml
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package-lock.json
+  workflow_dispatch:
+
+jobs:
+  update:
+    uses: sapphire-sh/github-actions/.github/workflows/shared-config-update-template.yml@main
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      run_tests: true # optional, default: false
+```
+
+**Inputs:**
+
+| Name               | Required | Default         | Description                                                                                                                                              |
+| ------------------ | -------- | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_tests`        | No       | `false`         | Run `npm test` before opening the pull request                                                                                                           |
+| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                                       |
+| `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after `npm ci --ignore-scripts`, so their install scripts run (e.g. a native addon's binding file) |
+
+**Secrets:** none; the automatic `GITHUB_TOKEN` is used.
+
+**Jobs:**
+
+1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when bootstrap changed anything, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and the `git status --short` output as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the repository owner to the pull request in both cases
+
+**Notes:**
+
+- Every run rebuilds the `chore/shared-config-update` branch from the commit it checked out, so commits pushed to it by hand are overwritten
+- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
+- The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
+- `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
+- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
 
 ---
 
