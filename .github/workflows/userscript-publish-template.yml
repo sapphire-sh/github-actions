@@ -14,6 +14,19 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+      MATTERMOST_TOKEN:
+        required: false
+      MATTERMOST_CHANNEL_ID:
+        required: false
+      MATTERMOST_URL:
+        required: false
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: false
+      TAILSCALE_OAUTH_CLIENT_SECRET:
+        required: false
 
 permissions: {}
 
@@ -22,7 +35,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verify:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/node-verify-template.yml
+    with:
+      runner: ${{ inputs.runner }}
+
   publish:
+    needs: [verify]
+    if: github.event_name != 'pull_request'
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: write
@@ -53,3 +75,22 @@ jobs:
             --title 'UserScript (latest)' \
             --notes "Auto-published from ${{ github.sha }} (version ${USERSCRIPT_VERSION})." \
             $ASSETS
+
+  notify:
+    needs: [verify, publish]
+    if: always()
+    permissions:
+      contents: read
+    uses: ./.github/workflows/notify-template.yml
+    with:
+      result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
+      context: ${{ github.repository }}
+      job: ${{ github.event_name == 'pull_request' && 'verify' || 'publish' }}
+      runner: ${{ inputs.runner }}
+    secrets:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      MATTERMOST_TOKEN: ${{ secrets.MATTERMOST_TOKEN }}
+      MATTERMOST_CHANNEL_ID: ${{ secrets.MATTERMOST_CHANNEL_ID }}
+      MATTERMOST_URL: ${{ secrets.MATTERMOST_URL }}
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+      TAILSCALE_OAUTH_CLIENT_SECRET: ${{ secrets.TAILSCALE_OAUTH_CLIENT_SECRET }}

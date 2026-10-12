@@ -234,7 +234,7 @@ jobs:
 
 ### Shared UserScript Publish ([`.github/workflows/userscript-publish-template.yml`](.github/workflows/userscript-publish-template.yml))
 
-A reusable workflow that builds userscripts and publishes them as assets of the fixed `userscript-latest` GitHub release, replacing the previous release and its tag on every run.
+A reusable workflow that builds userscripts and publishes them as assets of the fixed `userscript-latest` GitHub release, replacing the previous release and its tag on every run except on `pull_request` events.
 
 **Usage:**
 
@@ -245,6 +245,7 @@ jobs:
     with:
       assets: dist/*.user.js
       working_directory: . # optional, default: .
+    secrets: inherit
 ```
 
 **Inputs:**
@@ -253,15 +254,24 @@ jobs:
 | ------------------- | -------- | --------------- | -------------------------------------------------------------------------------------------------------- |
 | `assets`            | Yes      | —               | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded |
 | `working_directory` | No       | `.`             | Directory where `npm run build` runs                                                                     |
-| `runner`            | No       | `ubuntu-latest` | Runner that the publish job runs on                                                                      |
+| `runner`            | No       | `ubuntu-latest` | Runner that all jobs run on                                                                              |
 
-**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
+**Secrets:**
+
+| Name                            | Required | Description                                                      |
+| ------------------------------- | -------- | ---------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for publish notifications                 |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | No       | Tailscale OAuth client ID                                        |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | No       | Tailscale OAuth client secret                                    |
 
 **Jobs:**
 
-1. **publish** — Runs `npm ci` on Node.js 26, records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached
-
-Notifications are left to the caller, which can report its checks and the publish result together.
+1. **verify**: Calls the Shared Node Verify workflow on `runner`, which runs `npm ci`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines
+2. **publish**: Runs `npm ci` on Node.js 26, records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
+3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `verify` on `pull_request` events and `publish` otherwise
 
 ---
 
