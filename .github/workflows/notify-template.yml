@@ -19,7 +19,7 @@ on:
         default: self-hosted
     secrets:
       SLACK_WEBHOOK_URL:
-        required: false
+        required: true
       MATTERMOST_CHANNEL_ID:
         required: false
       MATTERMOST_TOKEN:

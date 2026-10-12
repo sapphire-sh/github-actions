@@ -55,7 +55,7 @@ jobs:
 | `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                                              |
 | `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                                          |
 | `PORTAINER_WEBHOOK_URL`         | No       | Portainer webhook to trigger redeploy; the redeploy step is skipped when it is not set |
-| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for build notifications                                         |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for build notifications                                         |
 | `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                                |
 | `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                       |
 | `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                       |
@@ -136,7 +136,7 @@ jobs:
 | Name                            | Required | Description                                                                      |
 | ------------------------------- | -------- | -------------------------------------------------------------------------------- |
 | `NPM_TOKEN`                     | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC) |
-| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for publish notifications                                 |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                                 |
 | `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                          |
 | `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                 |
 | `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                 |
@@ -260,7 +260,7 @@ jobs:
 
 | Name                            | Required | Description                                                      |
 | ------------------------------- | -------- | ---------------------------------------------------------------- |
-| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for publish notifications                 |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                 |
 | `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
 | `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
 | `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |

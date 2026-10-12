@@ -48,7 +48,7 @@ on:
       PORTAINER_WEBHOOK_URL:
         required: false
       SLACK_WEBHOOK_URL:
-        required: false
+        required: true
       MATTERMOST_TOKEN:
         required: false
       MATTERMOST_CHANNEL_ID:
