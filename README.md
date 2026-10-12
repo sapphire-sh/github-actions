@@ -49,25 +49,23 @@ jobs:
 
 **Secrets:**
 
-| Name                            | Required | Description                                                      |
-| ------------------------------- | -------- | ---------------------------------------------------------------- |
-| `REGISTRY_HOST`                 | Yes      | Private registry hostname                                        |
-| `REGISTRY_USERNAME`             | Yes      | Registry login username                                          |
-| `REGISTRY_PASSWORD`             | Yes      | Registry login password                                          |
-| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                        |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                    |
-| `PORTAINER_WEBHOOK_URL`         | Yes      | Portainer webhook to trigger redeploy                            |
-| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for build notifications                   |
-| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
-| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
-| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |
+| Name                            | Required | Description                                                                            |
+| ------------------------------- | -------- | -------------------------------------------------------------------------------------- |
+| `REGISTRY_HOST`                 | Yes      | Private registry hostname                                                              |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                                              |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                                          |
+| `PORTAINER_WEBHOOK_URL`         | No       | Portainer webhook to trigger redeploy; the redeploy step is skipped when it is not set |
+| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for build notifications                                         |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                                |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                       |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                       |
 
 **Jobs:**
 
 1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
 2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
 3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
-4. **merge** — Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy. Tags: short SHA + `latest` on the default branch
+4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set. Tags: short SHA + `latest` on the default branch
 5. **notify** — Sends Slack/Mattermost notifications (each skipped if the respective webhook secret is not set)
 
 ---
