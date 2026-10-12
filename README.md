@@ -62,9 +62,9 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
-2. **prepare** — Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
-3. **build-and-push** — One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
+1. **test**: Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
+2. **prepare**: Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
+3. **build-and-push**: One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
 4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set. Tags: short SHA + `latest` on the default branch
 5. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set)
 
@@ -147,8 +147,8 @@ jobs:
 
 **Jobs:**
 
-1. **test** — Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if `run_tests` is `false`, except on `pull_request` events)
-2. **publish** — Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag. Skipped on `pull_request` events
+1. **test**: Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if `run_tests` is `false`, except on `pull_request` events)
+2. **publish**: Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `test` on `pull_request` events and `publish` otherwise
 
 ---
