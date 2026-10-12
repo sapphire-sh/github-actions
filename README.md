@@ -49,16 +49,18 @@ jobs:
 
 **Secrets:**
 
-| Name                            | Required | Description                                         |
-| ------------------------------- | -------- | --------------------------------------------------- |
-| `REGISTRY_HOST`                 | Yes      | Private registry hostname                           |
-| `REGISTRY_USERNAME`             | Yes      | Registry login username                             |
-| `REGISTRY_PASSWORD`             | Yes      | Registry login password                             |
-| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                           |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                       |
-| `PORTAINER_WEBHOOK_URL`         | Yes      | Portainer webhook to trigger redeploy               |
-| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for build notifications      |
-| `MATTERMOST_WEBHOOK_URL`        | No       | Mattermost incoming webhook for build notifications |
+| Name                            | Required | Description                                                      |
+| ------------------------------- | -------- | ---------------------------------------------------------------- |
+| `REGISTRY_HOST`                 | Yes      | Private registry hostname                                        |
+| `REGISTRY_USERNAME`             | Yes      | Registry login username                                          |
+| `REGISTRY_PASSWORD`             | Yes      | Registry login password                                          |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                        |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                    |
+| `PORTAINER_WEBHOOK_URL`         | Yes      | Portainer webhook to trigger redeploy                            |
+| `SLACK_WEBHOOK_URL`             | No       | Slack incoming webhook for build notifications                   |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |
 
 **Jobs:**
 
@@ -133,11 +135,13 @@ jobs:
 
 **Secrets:**
 
-| Name                     | Required | Description                                                                      |
-| ------------------------ | -------- | -------------------------------------------------------------------------------- |
-| `NPM_TOKEN`              | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC) |
-| `SLACK_WEBHOOK_URL`      | No       | Slack incoming webhook for publish notifications                                 |
-| `MATTERMOST_WEBHOOK_URL` | No       | Mattermost incoming webhook for publish notifications                            |
+| Name                    | Required | Description                                                                      |
+| ----------------------- | -------- | -------------------------------------------------------------------------------- |
+| `NPM_TOKEN`             | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC) |
+| `SLACK_WEBHOOK_URL`     | No       | Slack incoming webhook for publish notifications                                 |
+| `MATTERMOST_TOKEN`      | No       | Mattermost access token the notification is posted with                          |
+| `MATTERMOST_CHANNEL_ID` | No       | Mattermost channel the notification is posted to                                 |
+| `MATTERMOST_URL`        | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                 |
 
 **Trusted publishing:** The npm registry publish authenticates through trusted publishing (OIDC), so every package needs a trusted publisher configured on npmjs.com before its first publish. npm validates the calling workflow rather than this reusable workflow, so register the caller repository and the caller workflow filename.
 
