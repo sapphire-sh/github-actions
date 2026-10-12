@@ -40,7 +40,7 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ inputs.runner }}
-    if: inputs.run_tests
+    if: inputs.run_tests || github.event_name == 'pull_request'
     permissions:
       contents: read
     steps:
@@ -52,11 +52,30 @@ jobs:
           node-version: 26
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm test
+      - name: Detect available scripts
+        id: scripts
+        run: |
+          for script in build lint prettier test; do
+            available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
+            echo "$script is available: $available"
+            echo "$script=$available" >> "$GITHUB_OUTPUT"
+          done
+      - name: Build
+        if: steps.scripts.outputs.build == 'true'
+        run: npm run build
+      - name: Lint
+        if: steps.scripts.outputs.lint == 'true'
+        run: npm run lint
+      - name: Prettier
+        if: steps.scripts.outputs.prettier == 'true'
+        run: npm run prettier
+      - name: Test
+        if: steps.scripts.outputs.test == 'true'
+        run: npm test
 
   publish:
     needs: [test]
-    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
+    if: always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && github.event_name != 'pull_request'
     runs-on: ${{ inputs.runner }}
     permissions:
       contents: write
@@ -146,7 +165,7 @@ jobs:
     with:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
       context: ${{ github.repository }}
-      job: publish
+      job: ${{ github.event_name == 'pull_request' && 'test' || 'publish' }}
       runner: ${{ inputs.runner }}
     secrets:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
