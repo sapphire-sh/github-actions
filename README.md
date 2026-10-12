@@ -153,6 +153,36 @@ jobs:
 
 ---
 
+### Shared Node Verify ([`.github/workflows/node-verify-template.yml`](.github/workflows/node-verify-template.yml))
+
+A reusable workflow that runs the build, lint, prettier and test scripts of an npm project.
+
+**Usage:**
+
+```yaml
+jobs:
+  verify:
+    uses: sapphire-sh/github-actions/.github/workflows/node-verify-template.yml@main
+    with:
+      runner: ubuntu-latest # optional, default: self-hosted
+```
+
+**Inputs:**
+
+| Name     | Required | Default       | Description                        |
+| -------- | -------- | ------------- | ---------------------------------- |
+| `runner` | No       | `self-hosted` | Runner that the verify job runs on |
+
+**Secrets:** none.
+
+**Jobs:**
+
+1. **verify**: Runs `npm ci`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26
+
+Notifications are left to the caller.
+
+---
+
 ### Shared npm Audit Fix ([`.github/workflows/npm-audit-fix-template.yml`](.github/workflows/npm-audit-fix-template.yml))
 
 A reusable workflow that applies `npm audit fix` and opens a pull request with the result.
