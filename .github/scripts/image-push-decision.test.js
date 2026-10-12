@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { shouldPushImage } from './docker-ci-push.js';
+import { shouldPushImage } from './image-push-decision.js';
 
 describe('shouldPushImage', () => {
 	it('is false on a pull_request event even when push_image is true', () => {

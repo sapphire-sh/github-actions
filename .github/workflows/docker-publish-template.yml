@@ -59,7 +59,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: docker-ci-${{ github.workflow }}-${{ github.ref }}
+  group: docker-publish-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -107,7 +107,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           PUSH_IMAGE: ${{ inputs.push_image }}
-        run: node .github/scripts/docker-ci-push.js >> "$GITHUB_OUTPUT"
+        run: node .github/scripts/image-push-decision.js >> "$GITHUB_OUTPUT"
 
       # Each requested platform becomes its own build job on the runner that is native to it,
       # so the matrix follows the platforms input instead of being fixed to both architectures.
@@ -180,7 +180,7 @@ jobs:
           # rebuilding. On ephemeral github-hosted runners the state is discarded regardless.
           # The name carries image_name so a host shared by several calling repositories holds
           # one builder, and one cache, per repository.
-          name: docker-ci-${{ inputs.image_name }}
+          name: docker-publish-${{ inputs.image_name }}
           keep-state: true
           # setup-buildx-action removes the builder when a job ends by default, which would tear
           # down one that a concurrent job is still building with: both platform builds when the
@@ -269,7 +269,7 @@ jobs:
         with:
           # The same name the build jobs use: merge runs after them through needs, so it reuses
           # their state instead of creating a builder of its own.
-          name: docker-ci-${{ inputs.image_name }}
+          name: docker-publish-${{ inputs.image_name }}
           keep-state: true
           # Kept for the same reason as in build-and-push.
           cleanup: false

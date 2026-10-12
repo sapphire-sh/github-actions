@@ -13,11 +13,11 @@ Mapping a platform to a runner of another architecture (e.g. `runner_amd64: self
 - A Docker runtime (e.g. colima or OrbStack) with the private registry configured as an insecure registry — this replaces the per-run daemon reconfiguration used on ephemeral runners.
 - binfmt/QEMU enabled for cross-platform builds.
 
-On a self-hosted host the Docker CI workflow reuses a persistent Buildx builder (`keep-state`), so its BuildKit layer cache survives between runs and unchanged layers are served locally instead of rebuilt. The builder is named after the image (`docker-ci-<image_name>`), so a host shared by several repositories holds one builder per repository. The builder is also kept when a job ends, so a finishing job does not tear down one that a concurrent job of the same repository — the other platform's build, or a run of a different ref — is still using; it stays on the host until `docker buildx rm docker-ci-<image_name>` removes it. Each builder keeps its own cache, which grows over time and is pruned per builder with `docker buildx prune --builder docker-ci-<image_name>`; `docker buildx ls` lists the ones present on the host. On github-hosted runners the builder is ephemeral, so the GitHub Actions cache backend is used instead to carry the cache across runs.
+On a self-hosted host the Docker CI workflow reuses a persistent Buildx builder (`keep-state`), so its BuildKit layer cache survives between runs and unchanged layers are served locally instead of rebuilt. The builder is named after the image (`docker-publish-<image_name>`), so a host shared by several repositories holds one builder per repository. The builder is also kept when a job ends, so a finishing job does not tear down one that a concurrent job of the same repository (the other platform's build, or a run of a different ref) is still using; it stays on the host until `docker buildx rm docker-publish-<image_name>` removes it. Each builder keeps its own cache, which grows over time and is pruned per builder with `docker buildx prune --builder docker-publish-<image_name>`; `docker buildx ls` lists the ones present on the host. On github-hosted runners the builder is ephemeral, so the GitHub Actions cache backend is used instead to carry the cache across runs.
 
 ## Workflows
 
-### Shared Docker CI ([`.github/workflows/docker-ci-template.yml`](.github/workflows/docker-ci-template.yml))
+### Shared Docker CI ([`.github/workflows/docker-publish-template.yml`](.github/workflows/docker-publish-template.yml))
 
 A reusable workflow for building and pushing Docker images to a private registry via Tailscale.
 
@@ -26,7 +26,7 @@ A reusable workflow for building and pushing Docker images to a private registry
 ```yaml
 jobs:
   ci:
-    uses: sapphire-sh/github-actions/.github/workflows/docker-ci-template.yml@main
+    uses: sapphire-sh/github-actions/.github/workflows/docker-publish-template.yml@main
     with:
       image_name: my-app
       run_tests: true # optional, default: false
@@ -70,9 +70,9 @@ jobs:
 
 ---
 
-### Shared Buildx Prune ([`.github/workflows/buildx-prune-template.yml`](.github/workflows/buildx-prune-template.yml))
+### Shared Buildx Prune ([`.github/workflows/docker-buildx-prune-template.yml`](.github/workflows/docker-buildx-prune-template.yml))
 
-A reusable workflow that prunes the BuildKit cache of the persistent `docker-ci-<image_name>` builder the Docker CI workflow keeps on a self-hosted host. Call it on a `schedule` from the same repository that calls the Docker CI workflow, with the same `image_name` and a `runner` that reaches the same host.
+A reusable workflow that prunes the BuildKit cache of the persistent `docker-publish-<image_name>` builder the Docker CI workflow keeps on a self-hosted host. Call it on a `schedule` from the same repository that calls the Docker CI workflow, with the same `image_name` and a `runner` that reaches the same host.
 
 **Usage:**
 
@@ -83,8 +83,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  buildx-prune:
-    uses: sapphire-sh/github-actions/.github/workflows/buildx-prune-template.yml@main
+  docker-buildx-prune:
+    uses: sapphire-sh/github-actions/.github/workflows/docker-buildx-prune-template.yml@main
     with:
       image_name: my-app
       retention: 128h # optional, default: 128h
@@ -102,11 +102,11 @@ jobs:
 
 **Jobs:**
 
-1. **prune** — Runs `docker buildx prune --builder docker-ci-<image_name> --filter until=<retention> --force`
+1. **prune**: Runs `docker buildx prune --builder docker-publish-<image_name> --filter until=<retention> --force`
 
 ---
 
-### Shared npm Publish ([`.github/workflows/npm-publish-template.yml`](.github/workflows/npm-publish-template.yml))
+### Shared npm Publish ([`.github/workflows/node-publish-template.yml`](.github/workflows/node-publish-template.yml))
 
 A reusable workflow for bumping, building, and publishing an npm package to both the npm registry and GitHub Packages.
 
@@ -115,7 +115,7 @@ A reusable workflow for bumping, building, and publishing an npm package to both
 ```yaml
 jobs:
   publish:
-    uses: sapphire-sh/github-actions/.github/workflows/npm-publish-template.yml@main
+    uses: sapphire-sh/github-actions/.github/workflows/node-publish-template.yml@main
     with:
       version_bump: minor # optional, default: minor
       run_tests: true # optional, default: false
@@ -183,7 +183,7 @@ Notifications are left to the caller.
 
 ---
 
-### Shared npm Audit Fix ([`.github/workflows/npm-audit-fix-template.yml`](.github/workflows/npm-audit-fix-template.yml))
+### Shared npm Audit Fix ([`.github/workflows/node-audit-fix-template.yml`](.github/workflows/node-audit-fix-template.yml))
 
 A reusable workflow that applies `npm audit fix` and opens a pull request with the result.
 
@@ -196,8 +196,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  npm-audit-fix:
-    uses: sapphire-sh/github-actions/.github/workflows/npm-audit-fix-template.yml@main
+  node-audit-fix:
+    uses: sapphire-sh/github-actions/.github/workflows/node-audit-fix-template.yml@main
     with:
       run_tests: true # optional, default: false
     secrets:
@@ -275,7 +275,7 @@ jobs:
 
 ---
 
-### Shared Config Update ([`.github/workflows/shared-config-update-template.yml`](.github/workflows/shared-config-update-template.yml))
+### Shared Config Update ([`.github/workflows/node-shared-config-update-template.yml`](.github/workflows/node-shared-config-update-template.yml))
 
 A reusable workflow that applies the shared configuration of the installed `@sapphire-sh/utils` with `npm run bootstrap` and opens a pull request with the result.
 
@@ -292,7 +292,7 @@ on:
 
 jobs:
   update:
-    uses: sapphire-sh/github-actions/.github/workflows/shared-config-update-template.yml@main
+    uses: sapphire-sh/github-actions/.github/workflows/node-shared-config-update-template.yml@main
     permissions:
       contents: write
       issues: write

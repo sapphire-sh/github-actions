@@ -22,11 +22,11 @@ jobs:
     runs-on: ${{ inputs.runner }}
     permissions: {}
     steps:
-      # docker-ci-template keeps its builder on a self-hosted host between runs, so the BuildKit
-      # cache of each builder grows until something prunes it. The name matches the one that
-      # template gives the builder for the same image_name.
+      # docker-publish-template keeps its builder on a self-hosted host between runs, so the
+      # BuildKit cache of each builder grows until something prunes it. The name matches the one
+      # that template gives the builder for the same image_name.
       - name: Prune builder cache
         env:
-          BUILDER: docker-ci-${{ inputs.image_name }}
+          BUILDER: docker-publish-${{ inputs.image_name }}
           RETENTION: ${{ inputs.retention }}
         run: docker buildx prune --builder "$BUILDER" --filter "until=$RETENTION" --force

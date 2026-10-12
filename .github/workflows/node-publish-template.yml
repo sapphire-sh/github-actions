@@ -38,7 +38,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: npm-publish-${{ github.workflow }}-${{ github.ref }}
+  group: node-publish-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

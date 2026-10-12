@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { publishPullRequest } from './npm-audit-fix-publish.js';
 import { PERMISSION_GUIDANCE } from './pull-request-permission.js';
+import { publishPullRequest } from './pull-request-publish.js';
 
 const BRANCH = 'chore/npm-audit-fix';
 const TITLE = 'chore(deps): apply npm audit fix';
@@ -54,7 +54,7 @@ const failGhCreate = (stderr) => {
 };
 
 beforeEach(() => {
-	root = mkdtempSync(join(tmpdir(), 'npm-audit-fix-publish-'));
+	root = mkdtempSync(join(tmpdir(), 'pull-request-publish-'));
 	origin = join(root, 'origin.git');
 	directory = join(root, 'work');
 	execFileSync('git', ['init', '--quiet', '--bare', origin]);
