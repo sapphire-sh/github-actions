@@ -15,6 +15,9 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      PULL_REQUEST_TOKEN:
+        required: true
 
 permissions: {}
 
@@ -31,6 +34,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ secrets.PULL_REQUEST_TOKEN }}
 
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -57,7 +62,8 @@ jobs:
       - name: Apply shared configuration
         run: npm run bootstrap
 
-      # GITHUB_TOKEN cannot push workflow files, so those changes are left to a local bootstrap run.
+      # PULL_REQUEST_TOKEN may lack the permission to push workflow files, so those changes are
+      # left to a local bootstrap run.
       - name: Discard workflow file changes
         run: node .github-actions-shared/.github/scripts/discard-workflow-changes.js
 
@@ -100,7 +106,7 @@ jobs:
 
       - name: Create or update pull request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           BRANCH: chore/shared-config-update
           ASSIGNEE: ${{ github.repository_owner }}
         run: |

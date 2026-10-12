@@ -166,6 +166,8 @@ jobs:
     uses: sapphire-sh/github-actions/.github/workflows/npm-audit-fix-template.yml@main
     with:
       run_tests: true # optional, default: false
+    secrets:
+      PULL_REQUEST_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
 ```
 
 **Inputs:**
@@ -176,7 +178,11 @@ jobs:
 | `runner`           | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                                                        |
 | `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after the fix, so their install scripts run (e.g. a native addon's binding file) |
 
-**Secrets:** none — the automatic `GITHUB_TOKEN` is used.
+**Secrets:**
+
+| Name                 | Required | Description                                                                          |
+| -------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `PULL_REQUEST_TOKEN` | Yes      | Personal access token that pushes the branch and creates or updates the pull request |
 
 **Jobs:**
 
@@ -186,9 +192,8 @@ jobs:
 
 - `--force` is not passed, so only fixes inside the declared dependency ranges are applied; vulnerabilities that need a range change remain and do not fail the run
 - Every run rebuilds the `chore/npm-audit-fix` branch from the commit it checked out, so commits pushed to it by hand are overwritten, and a pull request closed without merging is opened again by the next run whose fix changes anything
-- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
-- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
+- Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
 
 ---
 
@@ -249,6 +254,8 @@ jobs:
       pull-requests: write
     with:
       run_tests: true # optional, default: false
+    secrets:
+      PULL_REQUEST_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
 ```
 
 **Inputs:**
@@ -259,7 +266,11 @@ jobs:
 | `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                                       |
 | `rebuild_packages` | No       | `''`            | Space-separated package names passed to `npm rebuild` after `npm ci --ignore-scripts`, so their install scripts run (e.g. a native addon's binding file) |
 
-**Secrets:** none; the automatic `GITHUB_TOKEN` is used.
+**Secrets:**
+
+| Name                 | Required | Description                                                                          |
+| -------------------- | -------- | ------------------------------------------------------------------------------------ |
+| `PULL_REQUEST_TOKEN` | Yes      | Personal access token that pushes the branch and creates or updates the pull request |
 
 **Jobs:**
 
@@ -268,7 +279,6 @@ jobs:
 **Notes:**
 
 - Every run rebuilds the `chore/shared-config-update` branch from the commit it checked out, so commits pushed to it by hand are overwritten
-- Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
-- `GITHUB_TOKEN` cannot push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
-- Pull requests opened with `GITHUB_TOKEN` create `pull_request` workflow runs that wait for approval, so CI on them starts only once someone with write access selects _Approve workflows to run_
+- `PULL_REQUEST_TOKEN` may lack the permission to push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
+- Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval

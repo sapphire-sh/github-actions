@@ -15,6 +15,9 @@ on:
         required: false
         type: string
         default: ''
+    secrets:
+      PULL_REQUEST_TOKEN:
+        required: true
 
 permissions: {}
 
@@ -31,6 +34,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ secrets.PULL_REQUEST_TOKEN }}
 
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
@@ -89,7 +94,7 @@ jobs:
 
       - name: Create or update pull request
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           BRANCH: chore/npm-audit-fix
           TITLE: 'chore(deps): apply npm audit fix'
           ASSIGNEE: ${{ github.repository_owner }}
