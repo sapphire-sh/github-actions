@@ -1,0 +1,46 @@
+name: Shared Dependabot Review Request
+
+on:
+  workflow_call:
+    inputs:
+      reviewers:
+        required: false
+        type: string
+        default: ''
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+
+permissions: {}
+
+concurrency:
+  group: dependabot-review-request-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  request:
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && inputs.reviewers != ''
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Request reviewers
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REVIEWERS: ${{ inputs.reviewers }}
+          URL: ${{ github.api_url }}/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/requested_reviewers
+        run: |
+          body='{"reviewers":['
+          separator=''
+          for reviewer in $REVIEWERS; do
+            body="$body$separator\"$reviewer\""
+            separator=','
+          done
+          body="$body]}"
+          curl --fail-with-body --silent --show-error -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2026-03-10' \
+            --data "$body" "$URL"

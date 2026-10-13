@@ -4,7 +4,7 @@ Reusable GitHub Actions workflows.
 
 ## Runners
 
-All workflows take a `runner` input. It defaults to `self-hosted`, except on the shared config update, npm audit fix and userscript publish workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
+All workflows take a `runner` input. It defaults to `self-hosted`, except on the shared config update, npm audit fix, userscript publish and Dependabot review request workflows, where it defaults to `ubuntu-latest` because those workflows need nothing from a specific host. Pass the input explicitly to run a workflow somewhere other than its default.
 
 The Docker CI workflow builds each target platform on a runner native to it: `linux/amd64` on `runner_amd64` (default `ubuntu-latest`) and `linux/arm64` on `runner_arm64` (default `self-hosted`). Each build pushes its image by digest and a merge job combines the digests into a manifest list, so neither platform goes through emulation. Override the `platforms` input to build a subset (e.g. `linux/arm64` only), which drops the build job for the omitted platform.
 
@@ -346,3 +346,42 @@ jobs:
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
 - `PULL_REQUEST_TOKEN` may lack the permission to push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
 - Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
+
+---
+
+### Shared Dependabot Review Request ([`.github/workflows/dependabot-review-request-template.yml`](.github/workflows/dependabot-review-request-template.yml))
+
+A reusable workflow that requests reviews on pull requests opened by Dependabot.
+
+**Usage:**
+
+```yaml
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  request:
+    uses: sapphire-sh/github-actions/.github/workflows/dependabot-review-request-template.yml@main
+    permissions:
+      pull-requests: write
+    with:
+      reviewers: example-user
+```
+
+**Inputs:**
+
+| Name        | Required | Default         | Description                                          |
+| ----------- | -------- | --------------- | ---------------------------------------------------- |
+| `reviewers` | No       | `''`            | Space-separated user names whose review is requested |
+| `runner`    | No       | `ubuntu-latest` | Runner that the request job runs on                  |
+
+**Secrets:** none.
+
+**Jobs:**
+
+1. **request**: On a pull request opened by Dependabot, requests a review from the `reviewers` users when that input is not empty
+
+**Notes:**
+
+- The calling job's `permissions` must include `pull-requests: write`, since a called workflow only receives the permissions its caller grants
