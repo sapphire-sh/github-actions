@@ -6,6 +6,10 @@ on:
       image_name:
         required: true
         type: string
+      dockerfile:
+        required: false
+        type: string
+        default: Dockerfile
       run_tests:
         required: false
         type: boolean
@@ -178,8 +182,8 @@ jobs:
           # A stable builder name plus keep-state persists the BuildKit cache across runs on
           # a long-lived self-hosted host, so unchanged layers hit the local cache instead of
           # rebuilding. On ephemeral github-hosted runners the state is discarded regardless.
-          # The name carries image_name so a host shared by several calling repositories holds
-          # one builder, and one cache, per repository.
+          # The name carries image_name so a host shared by several calling repositories, or by
+          # one repository building several images, holds one builder, and one cache, per image.
           name: docker-publish-${{ inputs.image_name }}
           keep-state: true
           # setup-buildx-action removes the builder when a job ends by default, which would tear
@@ -206,6 +210,7 @@ jobs:
         with:
           builder: ${{ steps.buildx.outputs.name }}
           context: .
+          file: ${{ inputs.dockerfile }}
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ secrets.REGISTRY_HOST }}/${{ inputs.image_name }},push-by-digest=true,name-canonical=true,push=${{ needs.prepare.outputs.push }}
