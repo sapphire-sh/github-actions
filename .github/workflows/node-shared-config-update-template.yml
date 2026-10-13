@@ -113,7 +113,7 @@ jobs:
           echo '.github-actions-shared/' >> .git/info/exclude
           version="$(node -p "require('./node_modules/@sapphire-sh/utils/package.json').version")"
           title="chore: apply @sapphire-sh/utils $version shared configuration"
-          body="$(git status --short)"
+          body="$(node .github-actions-shared/.github/scripts/change-summary.js)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" <<< "$body"

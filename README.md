@@ -337,7 +337,7 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when bootstrap changed anything, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and the `git status --short` output as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the repository owner to the pull request in both cases
+1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty), verifies with `build` → `lint` → `prettier` → `test`, and, when bootstrap changed anything, a run that only added new files included, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and a table of the changed files (`File`, `Change`) followed by the whole diff in a collapsed block as the pull request body, leaving the diff out when the body would exceed 65,536 bytes: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the repository owner to the pull request in both cases
 
 **Notes:**
 
