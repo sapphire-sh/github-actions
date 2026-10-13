@@ -1,5 +1,23 @@
 #!/usr/bin/env node
 
+export const fetchRunStartedAt = async ({ apiUrl, repository, runId, token, fetch }) => {
+	try {
+		const response = await fetch(`${apiUrl}/repos/${repository}/actions/runs/${runId}`, {
+			headers: {
+				Authorization: `Bearer ${token}`,
+				Accept: 'application/vnd.github+json',
+			},
+		});
+		if (!response.ok) {
+			return '';
+		}
+		const run = await response.json();
+		return run.run_started_at ?? '';
+	} catch {
+		return '';
+	}
+};
+
 export const buildPayload = (env) => {
 	const e = (k) => env[k] ?? '';
 
@@ -56,5 +74,12 @@ export const buildPayload = (env) => {
 };
 
 if (import.meta.filename === process.argv[1]) {
-	process.stdout.write(JSON.stringify(buildPayload(process.env)) + '\n');
+	const runStartedAt = await fetchRunStartedAt({
+		apiUrl: process.env.API_URL,
+		repository: process.env.REPOSITORY,
+		runId: process.env.RUN_ID,
+		token: process.env.GITHUB_TOKEN,
+		fetch,
+	});
+	process.stdout.write(JSON.stringify(buildPayload({ ...process.env, RUN_STARTED_AT: runStartedAt })) + '\n');
 }

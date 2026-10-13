@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { buildPayload } from './notify-build-payload.js';
+import { buildPayload, fetchRunStartedAt } from './notify-build-payload.js';
 
 const authorOf = (attachment) => attachment.fields.find((field) => field.title === 'author').value;
 
@@ -30,5 +30,36 @@ describe('buildPayload', () => {
 		assert.equal(attachment.title, '0123456: First line');
 		assert.equal(attachment.title_link, 'https://github.com/owner/repo/commit/0123456789abcdef');
 		assert.equal(authorOf(attachment), 'Example <example@example.com>');
+	});
+});
+
+describe('fetchRunStartedAt', () => {
+	const options = { apiUrl: 'https://api.github.com', repository: 'owner/repo', runId: '123', token: 'token' };
+
+	it('requests the workflow run with the token and returns its run_started_at', async () => {
+		const requests = [];
+		const fetch = async (url, init) => {
+			requests.push({ url, init });
+			return { ok: true, json: async () => ({ run_started_at: '2026-01-01T00:00:00Z' }) };
+		};
+		assert.equal(await fetchRunStartedAt({ ...options, fetch }), '2026-01-01T00:00:00Z');
+		assert.deepEqual(requests, [
+			{
+				url: 'https://api.github.com/repos/owner/repo/actions/runs/123',
+				init: { headers: { Authorization: 'Bearer token', Accept: 'application/vnd.github+json' } },
+			},
+		]);
+	});
+
+	it('returns an empty string when the response is not ok', async () => {
+		const fetch = async () => ({ ok: false });
+		assert.equal(await fetchRunStartedAt({ ...options, fetch }), '');
+	});
+
+	it('returns an empty string when the request rejects', async () => {
+		const fetch = async () => {
+			throw new Error('network error');
+		};
+		assert.equal(await fetchRunStartedAt({ ...options, fetch }), '');
 	});
 });

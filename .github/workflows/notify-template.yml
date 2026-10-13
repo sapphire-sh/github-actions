@@ -44,6 +44,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -65,7 +66,6 @@ jobs:
           RESULT: ${{ inputs.result }}
           CONTEXT: ${{ inputs.context }}
           JOB: ${{ inputs.job }}
-          RUN_STARTED_AT: ${{ github.run_started_at }}
           REPOSITORY: ${{ github.repository }}
           REF: ${{ github.ref }}
           REF_NAME: ${{ github.ref_name }}
@@ -74,6 +74,8 @@ jobs:
           SERVER_URL: ${{ github.server_url }}
           SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
+          API_URL: ${{ github.api_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}

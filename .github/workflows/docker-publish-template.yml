@@ -325,6 +325,7 @@ jobs:
     if: always()
     permissions:
       contents: read
+      actions: read
     uses: ./.github/workflows/notify-template.yml
     with:
       result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
