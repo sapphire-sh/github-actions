@@ -33,6 +33,23 @@ jobs:
     secrets: inherit
 ```
 
+To build several images from one repository, call the workflow from one job per image in the same caller workflow, each with its own `image_name` and, where the image is not built from the root `Dockerfile`, its `dockerfile`. The digest artifacts and the concurrency group are both keyed by `image_name`, so the calls stay separate within one run.
+
+```yaml
+jobs:
+  app:
+    uses: sapphire-sh/github-actions/.github/workflows/docker-publish-template.yml@main
+    with:
+      image_name: my-app
+    secrets: inherit
+  worker:
+    uses: sapphire-sh/github-actions/.github/workflows/docker-publish-template.yml@main
+    with:
+      image_name: my-app-worker
+      dockerfile: worker/Dockerfile
+    secrets: inherit
+```
+
 **Inputs:**
 
 | Name               | Required | Default                   | Description                                                                                                                                                   |
