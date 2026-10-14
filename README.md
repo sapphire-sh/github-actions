@@ -346,7 +346,7 @@ jobs:
 - Every run rebuilds the `chore/shared-config-update` branch from the commit it checked out, so commits pushed to it by hand are overwritten
 - Requires _Allow GitHub Actions to create and approve pull requests_ in the repository's Actions settings; without it the pull request step prints where to enable it and fails
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
-- `PULL_REQUEST_TOKEN` may lack the permission to push workflow files, so changes under `.github/workflows` are discarded from the pull request; apply those by running `npm run bootstrap` locally
+- `PULL_REQUEST_TOKEN` must be able to push workflow files, since the pull request includes the changes bootstrap makes under `.github/workflows`
 - Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
 
 ---
