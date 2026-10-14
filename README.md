@@ -201,17 +201,18 @@ jobs:
 
 **Inputs:**
 
-| Name                | Required | Default       | Description                                                                                                                                |
-| ------------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `runner`            | No       | `self-hosted` | Runner that the verify job runs on                                                                                                         |
-| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
-| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the install and the scripts run                                                          |
+| Name                | Required | Default       | Description                                                                                                                                                                                                             |
+| ------------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`            | No       | `self-hosted` | Runner that the verify job runs on                                                                                                                                                                                      |
+| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                                                                              |
+| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the scripts run, and where the install runs when `install_directory` is empty                                                                                         |
+| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run and whose `package-lock.json` keys the setup-node cache; `working_directory` is used when empty (e.g. the root of an npm workspace) |
 
 **Secrets:** none.
 
 **Jobs:**
 
-1. **verify**: Runs `npm ci --ignore-scripts` in `working_directory` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package there defines, in that order, on Node.js 26
+1. **verify**: Runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package in `working_directory` defines, in that order, on Node.js 26
 
 Notifications are left to the caller.
 
@@ -284,12 +285,13 @@ jobs:
 
 **Inputs:**
 
-| Name                | Required | Default         | Description                                                                                                                                |
-| ------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `assets`            | Yes      | —               | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                   |
-| `working_directory` | No       | `.`             | Directory, relative to the repository root, where the install, the verify scripts and the build run                                        |
-| `runner`            | No       | `ubuntu-latest` | Runner that all jobs run on                                                                                                                |
-| `rebuild_packages`  | No       | `''`            | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
+| Name                | Required | Default         | Description                                                                                                                                                                                                             |
+| ------------------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets`            | Yes      | —               | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                                                                                                |
+| `working_directory` | No       | `.`             | Directory, relative to the repository root, where the verify scripts and the build run, and where the install runs when `install_directory` is empty                                                                    |
+| `install_directory` | No       | `''`            | Directory, relative to the repository root, where the install and `npm rebuild` run and whose `package-lock.json` keys the setup-node cache; `working_directory` is used when empty (e.g. the root of an npm workspace) |
+| `runner`            | No       | `ubuntu-latest` | Runner that all jobs run on                                                                                                                                                                                             |
+| `rebuild_packages`  | No       | `''`            | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                                                                              |
 
 **Secrets:**
 
@@ -304,8 +306,8 @@ jobs:
 
 **Jobs:**
 
-1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages` and `working_directory`, which runs `npm ci --ignore-scripts` in `working_directory` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package there defines
-2. **publish**: Runs `npm ci --ignore-scripts` in `working_directory` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` there, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
+1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages`, `working_directory` and `install_directory`, which runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package in `working_directory` defines
+2. **publish**: Runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty, on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `verify` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
 ---
