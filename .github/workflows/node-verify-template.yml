@@ -11,11 +11,15 @@ on:
         required: false
         type: string
         default: ''
+      working_directory:
+        required: false
+        type: string
+        default: .
 
 permissions: {}
 
 concurrency:
-  group: node-verify-${{ github.workflow }}-${{ github.ref }}
+  group: node-verify-${{ github.workflow }}-${{ github.ref }}-${{ inputs.working_directory }}
   cancel-in-progress: true
 
 jobs:
@@ -29,17 +33,21 @@ jobs:
         with:
           node-version: 26
           cache: npm
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
       - run: npm ci --ignore-scripts
+        working-directory: ${{ inputs.working_directory }}
       # The install above skips lifecycle scripts for the whole dependency tree, which leaves
       # a native addon without the binding file its own install script produces. Listing those
       # package names runs their scripts back, without turning scripts on for every dependency.
       - name: Rebuild packages that need their install scripts
         if: inputs.rebuild_packages != ''
+        working-directory: ${{ inputs.working_directory }}
         env:
           REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
         run: npm rebuild $REBUILD_PACKAGES
       - name: Detect available scripts
         id: scripts
+        working-directory: ${{ inputs.working_directory }}
         run: |
           for script in build lint prettier test; do
             available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
@@ -48,13 +56,17 @@ jobs:
           done
       - name: Build
         if: steps.scripts.outputs.build == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: npm run build
       - name: Lint
         if: steps.scripts.outputs.lint == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: npm run lint
       - name: Prettier
         if: steps.scripts.outputs.prettier == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: npm run prettier
       - name: Test
         if: steps.scripts.outputs.test == 'true'
+        working-directory: ${{ inputs.working_directory }}
         run: npm test

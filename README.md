@@ -185,18 +185,33 @@ jobs:
       runner: ubuntu-latest # optional, default: self-hosted
 ```
 
+To verify several npm projects in one repository, call the workflow from one job per directory in the same caller workflow, each with its own `working_directory`. The concurrency group is keyed by `working_directory`, so the calls stay separate within one run.
+
+```yaml
+jobs:
+  app:
+    uses: sapphire-sh/github-actions/.github/workflows/node-verify-template.yml@main
+    with:
+      working_directory: app
+  extension:
+    uses: sapphire-sh/github-actions/.github/workflows/node-verify-template.yml@main
+    with:
+      working_directory: extension
+```
+
 **Inputs:**
 
-| Name               | Required | Default       | Description                                                                                                                                |
-| ------------------ | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `runner`           | No       | `self-hosted` | Runner that the verify job runs on                                                                                                         |
-| `rebuild_packages` | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
+| Name                | Required | Default       | Description                                                                                                                                |
+| ------------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `runner`            | No       | `self-hosted` | Runner that the verify job runs on                                                                                                         |
+| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
+| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the install and the scripts run                                                          |
 
 **Secrets:** none.
 
 **Jobs:**
 
-1. **verify**: Runs `npm ci --ignore-scripts` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26
+1. **verify**: Runs `npm ci --ignore-scripts` in `working_directory` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package there defines, in that order, on Node.js 26
 
 Notifications are left to the caller.
 
