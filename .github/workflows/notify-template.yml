@@ -34,7 +34,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: notify-${{ github.workflow }}-${{ github.ref }}
+  group: notify-${{ github.workflow }}-${{ github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -67,22 +67,22 @@ jobs:
           CONTEXT: ${{ inputs.context }}
           JOB: ${{ inputs.job }}
           REPOSITORY: ${{ github.repository }}
-          REF: ${{ github.ref }}
-          REF_NAME: ${{ github.ref_name }}
-          EVENT_NAME: ${{ github.event_name }}
-          WORKFLOW: ${{ github.workflow }}
+          REF: ${{ github.event.workflow_run.head_branch || github.ref }}
+          REF_NAME: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+          EVENT_NAME: ${{ github.event.workflow_run.event || github.event_name }}
+          WORKFLOW: ${{ github.event.workflow_run.name || github.workflow }}
           SERVER_URL: ${{ github.server_url }}
-          SHA: ${{ github.sha }}
-          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          RUN_ID: ${{ github.event.workflow_run.id || github.run_id }}
           API_URL: ${{ github.api_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_URL: ${{ github.event.pull_request.html_url }}
-          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-          COMMIT_AUTHOR_NAME: ${{ github.event.head_commit.author.name }}
-          COMMIT_AUTHOR_EMAIL: ${{ github.event.head_commit.author.email }}
+          COMMIT_MESSAGE: ${{ github.event.workflow_run.head_commit.message || github.event.head_commit.message }}
+          COMMIT_AUTHOR_NAME: ${{ github.event.workflow_run.head_commit.author.name || github.event.head_commit.author.name }}
+          COMMIT_AUTHOR_EMAIL: ${{ github.event.workflow_run.head_commit.author.email || github.event.head_commit.author.email }}
         run: |
           [ -n "$SLACK_WEBHOOK_URL" ] && echo "notify_slack=true" >> "$GITHUB_OUTPUT" || echo "notify_slack=false" >> "$GITHUB_OUTPUT"
           [ -n "$MATTERMOST_CHANNEL_ID" ] && [ -n "$MATTERMOST_TOKEN" ] && [ -n "$MATTERMOST_URL" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_ID" ] && [ -n "$TAILSCALE_OAUTH_CLIENT_SECRET" ] && echo "notify_mattermost=true" >> "$GITHUB_OUTPUT" || echo "notify_mattermost=false" >> "$GITHUB_OUTPUT"
