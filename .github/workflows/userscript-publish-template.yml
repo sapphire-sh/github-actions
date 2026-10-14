@@ -46,6 +46,7 @@ jobs:
     with:
       runner: ${{ inputs.runner }}
       rebuild_packages: ${{ inputs.rebuild_packages }}
+      working_directory: ${{ inputs.working_directory }}
 
   publish:
     needs: [verify]
@@ -60,14 +61,17 @@ jobs:
         with:
           node-version: 26
           cache: npm
+          cache-dependency-path: ${{ inputs.working_directory }}/package-lock.json
 
       - run: npm ci --ignore-scripts
+        working-directory: ${{ inputs.working_directory }}
 
       # The install above skips lifecycle scripts for the whole dependency tree, which leaves
       # a native addon without the binding file its own install script produces. Listing those
       # package names runs their scripts back, without turning scripts on for every dependency.
       - name: Rebuild packages that need their install scripts
         if: inputs.rebuild_packages != ''
+        working-directory: ${{ inputs.working_directory }}
         env:
           REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
         run: npm rebuild $REBUILD_PACKAGES

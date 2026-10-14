@@ -287,7 +287,7 @@ jobs:
 | Name                | Required | Default         | Description                                                                                                                                |
 | ------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `assets`            | Yes      | —               | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                   |
-| `working_directory` | No       | `.`             | Directory where `npm run build` runs                                                                                                       |
+| `working_directory` | No       | `.`             | Directory, relative to the repository root, where the install, the verify scripts and the build run                                        |
 | `runner`            | No       | `ubuntu-latest` | Runner that all jobs run on                                                                                                                |
 | `rebuild_packages`  | No       | `''`            | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file) |
 
@@ -304,8 +304,8 @@ jobs:
 
 **Jobs:**
 
-1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages`, which runs `npm ci --ignore-scripts` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines
-2. **publish**: Runs `npm ci --ignore-scripts` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` in `working_directory`, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
+1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages` and `working_directory`, which runs `npm ci --ignore-scripts` in `working_directory` (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package there defines
+2. **publish**: Runs `npm ci --ignore-scripts` in `working_directory` on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), records the current Unix time in milliseconds as `USERSCRIPT_VERSION` for the build to read as the userscript `@version`, runs `npm run build` there, then deletes the `userscript-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `verify` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
 ---
