@@ -1,0 +1,80 @@
+name: Shared Utils Update
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+      run_tests:
+        required: false
+        type: boolean
+        default: false
+      rebuild_packages:
+        required: false
+        type: string
+        default: ''
+    secrets:
+      PULL_REQUEST_TOKEN:
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: node-utils-update-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ secrets.PULL_REQUEST_TOKEN }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
+
+      - name: Prepare the update helper
+        run: |
+          cp .github-actions-shared/.github/scripts/utils-update.js "$RUNNER_TEMP/utils-update.mjs"
+          rm -rf .github-actions-shared
+
+      - name: Update utils and verify affected packages
+        id: update
+        env:
+          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
+          RUN_TESTS: ${{ inputs.run_tests }}
+        run: node "$RUNNER_TEMP/utils-update.mjs" "$REBUILD_PACKAGES" "$RUN_TESTS" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.update.outputs.changed == 'true'
+        with:
+          repository: ${{ github.repository_owner }}/github-actions
+          path: .github-actions-shared
+
+      - name: Create or update pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
+          VERSION: ${{ steps.update.outputs.version }}
+          BRANCH: chore/sapphire-utils
+          ASSIGNEE: ${{ github.repository_owner }}
+        run: |
+          echo '.github-actions-shared/' >> .git/info/exclude
+          title="chore(deps): bump @sapphire-sh/utils to $VERSION"
+          body="$(node .github-actions-shared/.github/scripts/change-summary.js)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" <<< "$body"

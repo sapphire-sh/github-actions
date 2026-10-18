@@ -312,6 +312,57 @@ jobs:
 
 ---
 
+### Shared Utils Update ([`.github/workflows/node-utils-update-template.yml`](.github/workflows/node-utils-update-template.yml))
+
+A reusable workflow that updates `@sapphire-sh/utils` in tracked root and nested manifests and opens or updates a pull request.
+
+**Usage:**
+
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    uses: sapphire-sh/github-actions/.github/workflows/node-utils-update-template.yml@main
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    with:
+      run_tests: true # optional, default: false
+    secrets:
+      PULL_REQUEST_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
+```
+
+**Inputs:**
+
+| Name               | Required | Default         | Description                                                   |
+| ------------------ | -------- | --------------- | ------------------------------------------------------------- |
+| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                            |
+| `run_tests`        | No       | `false`         | Run each affected package's test script                       |
+| `rebuild_packages` | No       | `''`            | Space-separated package names rebuilt after each installation |
+
+**Secrets:**
+
+| Name                 | Required | Description                                                                |
+| -------------------- | -------- | -------------------------------------------------------------------------- |
+| `PULL_REQUEST_TOKEN` | Yes      | Token used to push the update branch and create or update the pull request |
+
+**Jobs:**
+
+1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text, runs `npm install --ignore-scripts` once per affected installation directory, and rebuilds `rebuild_packages` there when supplied. Workspace consumers share their root lockfile's installation. The affected installation roots and consumers run their defined scripts in `build`, `lint`, `prettier`, `test` order, with `test` enabled by `run_tests`. The helper runs from the runner's temporary directory so the shared checkout is removed before verification. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the repository owner.
+
+**Notes:**
+
+- Every update rebuilds the `chore/sapphire-utils` branch from the checked-out commit, replacing changes previously pushed to that branch.
+- The calling job passes `contents: write`, `issues: write`, `pull-requests: write` and `PULL_REQUEST_TOKEN` as shown above.
+- The schedule belongs to the caller. The example checks daily; other dependencies can use a weekly Dependabot schedule.
+
+---
+
 ### Shared Config Update ([`.github/workflows/node-shared-config-update-template.yml`](.github/workflows/node-shared-config-update-template.yml))
 
 A reusable workflow that applies the shared configuration of the installed `@sapphire-sh/utils` with `npm run bootstrap` and opens a pull request with the result.
