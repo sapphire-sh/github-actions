@@ -87,7 +87,7 @@ describe('updateUtils', () => {
 	});
 
 	it('installs a shared workspace lockfile once and checks scripts in stage order', () => {
-		const scripts = { build: 'build', lint: 'lint', prettier: 'prettier', test: 'test' };
+		const scripts = { bootstrap: 'bootstrap', build: 'build', lint: 'lint', prettier: 'prettier', test: 'test' };
 		writeJson('package.json', {
 			workspaces: ['packages/*'],
 			devDependencies: { [PACKAGE_NAME]: '^2.0.0' },
@@ -108,6 +108,7 @@ describe('updateUtils', () => {
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
 			['.', ['rebuild', 'native-package']],
+			['.', ['run', 'bootstrap']],
 			['.', ['run', 'build']],
 			['.', ['run', 'build', '--workspace', 'packages/web']],
 			['.', ['run', 'lint']],
@@ -134,6 +135,20 @@ describe('updateUtils', () => {
 			);
 			return '';
 		};
+
+		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(calls, [
+			['.', ['view', PACKAGE_NAME, 'version']],
+			['tools', ['install', '--ignore-scripts']],
+		]);
+	});
+
+	it('runs bootstrap only when the root is an installation directory', () => {
+		writeJson('package.json', { name: 'root', scripts: { bootstrap: 'bootstrap' } });
+		writeJson('tools/package.json', { devDependencies: { [PACKAGE_NAME]: '^2.0.0' } });
+		writeJson('tools/package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const { calls, runNpm } = recordNpm();
 
 		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [

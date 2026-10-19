@@ -353,12 +353,13 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text, runs `npm install --ignore-scripts` once per affected installation directory, and rebuilds `rebuild_packages` there when supplied. Workspace consumers share their root lockfile's installation. The affected installation roots and consumers run their defined scripts in `build`, `lint`, `prettier`, `test` order, with `test` enabled by `run_tests`. The helper runs from the runner's temporary directory so the shared checkout is removed before verification. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the repository owner.
+1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text, runs `npm install --ignore-scripts` once per affected installation directory, and rebuilds `rebuild_packages` there when supplied. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there before the scripts, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The affected installation roots and consumers run their defined scripts in `build`, `lint`, `prettier`, `test` order, with `test` enabled by `run_tests`. The helper runs from the runner's temporary directory so the shared checkout is removed before verification. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the repository owner.
 
 **Notes:**
 
 - Every update rebuilds the `chore/sapphire-utils` branch from the checked-out commit, replacing changes previously pushed to that branch.
 - The calling job passes `contents: write`, `issues: write`, `pull-requests: write` and `PULL_REQUEST_TOKEN` as shown above.
+- `PULL_REQUEST_TOKEN` must be able to push workflow files, since the pull request includes the changes bootstrap makes under `.github/workflows`.
 - The schedule belongs to the caller. The example checks daily; other dependencies can use a weekly Dependabot schedule.
 
 ---

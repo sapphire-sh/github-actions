@@ -122,6 +122,10 @@ export const updateUtils = (
 			executeNpm(join(directory, installationDirectory), ['rebuild', ...rebuildPackages]);
 		}
 	}
+	if (installations.has('.')) {
+		const rootManifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
+		if (Object.hasOwn(rootManifest.scripts ?? {}, 'bootstrap')) executeNpm(directory, ['run', 'bootstrap']);
+	}
 
 	const versions = new Set(
 		changed.map(({ installationDirectory, manifestDirectory }) =>
