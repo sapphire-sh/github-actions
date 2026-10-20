@@ -11,7 +11,8 @@ import { publishPullRequest } from './pull-request-publish.js';
 const BRANCH = 'chore/npm-audit-fix';
 const TITLE = 'chore(deps): apply npm audit fix';
 const BODY = '| Package | From | To | Required by |\n';
-const ASSIGNEE = 'repository-owner';
+const ASSIGNEES = ['first-assignee', 'second-assignee'];
+const OWNER = 'repository-owner';
 
 let root;
 let origin;
@@ -76,7 +77,14 @@ describe('publishPullRequest', () => {
 	it('does nothing when the working tree has no changes', () => {
 		const { calls, runGh } = recordGh([]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: ASSIGNEES,
+			owner: OWNER,
+			runGh,
+		});
 
 		assert.equal(originGit('for-each-ref', '--format=%(refname)', 'refs/heads'), '');
 		assert.deepEqual(calls, []);
@@ -86,13 +94,20 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.1" }\n');
 		const { calls, runGh } = recordGh([]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: ASSIGNEES,
+			owner: OWNER,
+			runGh,
+		});
 
 		assert.equal(originGit('show', `${BRANCH}:package-lock.json`), '{ "version": "1.0.1" }\n');
 		assert.equal(originGit('log', '--format=%s', `${BRANCH}`), `${TITLE}\ninitial\n`);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', ASSIGNEE],
+			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', 'first-assignee,second-assignee'],
 		]);
 	});
 
@@ -105,13 +120,44 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.2" }\n');
 		const { calls, runGh } = recordGh([{ number: 7 }]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh });
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: ASSIGNEES,
+			owner: OWNER,
+			runGh,
+		});
 
 		assert.equal(originGit('show', `${BRANCH}:package-lock.json`), '{ "version": "1.0.2" }\n');
 		assert.equal(originGit('log', '--format=%s', `${BRANCH}`), `${TITLE}\ninitial\n`);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'edit', '7', '--body', BODY, '--add-assignee', ASSIGNEE],
+			['pr', 'edit', '7', '--body', BODY, '--add-assignee', 'first-assignee,second-assignee'],
+		]);
+	});
+
+	it('assigns the repository owner to a new pull request when no assignee is listed', () => {
+		writeLockfile('{ "version": "1.0.1" }\n');
+		const { calls, runGh } = recordGh([]);
+
+		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignees: [], owner: OWNER, runGh });
+
+		assert.deepEqual(calls, [
+			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
+			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', OWNER],
+		]);
+	});
+
+	it('assigns the repository owner to the open pull request when no assignee is listed', () => {
+		writeLockfile('{ "version": "1.0.1" }\n');
+		const { calls, runGh } = recordGh([{ number: 7 }]);
+
+		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignees: [], owner: OWNER, runGh });
+
+		assert.deepEqual(calls, [
+			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
+			['pr', 'edit', '7', '--body', BODY, '--add-assignee', OWNER],
 		]);
 	});
 
@@ -123,7 +169,15 @@ describe('publishPullRequest', () => {
 		const consoleError = t.mock.method(console, 'error', () => {});
 
 		assert.throws(
-			() => publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh }),
+			() =>
+				publishPullRequest(directory, {
+					branch: BRANCH,
+					title: TITLE,
+					body: BODY,
+					assignees: ASSIGNEES,
+					owner: OWNER,
+					runGh,
+				}),
 			(thrown) => thrown === error,
 		);
 
@@ -134,7 +188,7 @@ describe('publishPullRequest', () => {
 		assert.equal(originGit('for-each-ref', '--format=%(refname)', 'refs/heads'), `refs/heads/${BRANCH}\n`);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', ASSIGNEE],
+			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', 'first-assignee,second-assignee'],
 		]);
 	});
 
@@ -144,14 +198,22 @@ describe('publishPullRequest', () => {
 		const consoleError = t.mock.method(console, 'error', () => {});
 
 		assert.throws(
-			() => publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignee: ASSIGNEE, runGh }),
+			() =>
+				publishPullRequest(directory, {
+					branch: BRANCH,
+					title: TITLE,
+					body: BODY,
+					assignees: ASSIGNEES,
+					owner: OWNER,
+					runGh,
+				}),
 			(thrown) => thrown === error,
 		);
 
 		assert.deepEqual(consoleError.mock.calls, []);
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
-			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', ASSIGNEE],
+			['pr', 'create', '--title', TITLE, '--body', BODY, '--assignee', 'first-assignee,second-assignee'],
 		]);
 	});
 });

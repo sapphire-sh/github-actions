@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: ''
+      assignee:
+        required: false
+        type: string
+        default: ''
     secrets:
       PULL_REQUEST_TOKEN:
         required: true
@@ -104,7 +108,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           BRANCH: chore/shared-config-update
-          ASSIGNEE: ${{ github.repository_owner }}
+          ASSIGNEE: ${{ inputs.assignee }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           echo '.github-actions-shared/' >> .git/info/exclude
           version="$(node -p "require('./node_modules/@sapphire-sh/utils/package.json').version")"
@@ -112,4 +117,4 @@ jobs:
           body="$(node .github-actions-shared/.github/scripts/change-summary.js)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" <<< "$body"
+          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" "$OWNER" <<< "$body"

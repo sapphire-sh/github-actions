@@ -15,6 +15,10 @@ on:
         required: false
         type: string
         default: ''
+      assignee:
+        required: false
+        type: string
+        default: ''
     secrets:
       PULL_REQUEST_TOKEN:
         required: true
@@ -97,10 +101,11 @@ jobs:
           GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           BRANCH: chore/npm-audit-fix
           TITLE: 'chore(deps): apply npm audit fix'
-          ASSIGNEE: ${{ github.repository_owner }}
+          ASSIGNEE: ${{ inputs.assignee }}
+          OWNER: ${{ github.repository_owner }}
         run: |
           echo '.github-actions-shared/' >> .git/info/exclude
           body="$(node .github-actions-shared/.github/scripts/dependency-summary.js)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" <<< "$body"
+          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" "$OWNER" <<< "$body"

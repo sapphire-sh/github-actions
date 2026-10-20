@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { git, hasChanges } from './git-helpers.js';
 import { createPullRequest } from './pull-request-permission.js';
 
-export const publishPullRequest = (directory, { branch, title, body, assignee, runGh }) => {
+export const publishPullRequest = (directory, { branch, title, body, assignees, owner, runGh }) => {
 	if (!hasChanges(directory)) {
 		console.log('no changes to commit');
 		return;
@@ -16,6 +16,7 @@ export const publishPullRequest = (directory, { branch, title, body, assignee, r
 	git(directory, 'commit', '-m', title);
 	git(directory, 'push', '--force', '-u', 'origin', branch);
 
+	const assignee = assignees.length === 0 ? owner : assignees.join(',');
 	const openPullRequests = JSON.parse(runGh(['pr', 'list', '--head', branch, '--state', 'open', '--json', 'number']));
 	if (openPullRequests.length === 0) {
 		createPullRequest(runGh, ['--title', title, '--body', body, '--assignee', assignee]);
@@ -26,12 +27,13 @@ export const publishPullRequest = (directory, { branch, title, body, assignee, r
 };
 
 if (import.meta.filename === process.argv[1]) {
-	const [branch, title, assignee] = process.argv.slice(2);
+	const [branch, title, assignee, owner] = process.argv.slice(2);
 	publishPullRequest(process.cwd(), {
 		branch,
 		title,
 		body: readFileSync(0, 'utf8'),
-		assignee,
+		assignees: assignee.split(/\s+/).filter((name) => name !== ''),
+		owner,
 		runGh: (args) => execFileSync('gh', args, { encoding: 'utf8' }),
 	});
 }
