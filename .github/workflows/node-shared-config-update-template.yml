@@ -57,6 +57,17 @@ jobs:
       - name: Apply shared configuration
         run: npm run bootstrap
 
+      - name: Install dependencies bootstrap added
+        env:
+          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
+        run: |
+          if ! git diff --quiet -- package.json; then
+            npm install --ignore-scripts
+            if [ -n "$REBUILD_PACKAGES" ]; then
+              npm rebuild $REBUILD_PACKAGES
+            fi
+          fi
+
       - name: Detect available scripts
         id: scripts
         run: |

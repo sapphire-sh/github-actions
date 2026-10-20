@@ -157,6 +157,48 @@ describe('updateUtils', () => {
 		]);
 	});
 
+	it('reinstalls at the root when bootstrap changes package.json', () => {
+		const scripts = { bootstrap: 'bootstrap' };
+		writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^2.0.0' }, scripts });
+		writeJson('package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const { calls, runNpm } = recordNpm();
+		const addDevDependencyOnBootstrap = (workingDirectory, argumentsList) => {
+			const output = runNpm(workingDirectory, argumentsList);
+			if (argumentsList.join(' ') === 'run bootstrap') {
+				writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^3.0.0', prettier: '^3.0.0' }, scripts });
+			}
+			return output;
+		};
+
+		assert.deepEqual(
+			updateUtils(directory, { runNpm: addDevDependencyOnBootstrap, rebuildPackages: ['native-package'] }),
+			{ changed: true, versions: ['3.0.0'] },
+		);
+		assert.deepEqual(calls, [
+			['.', ['view', PACKAGE_NAME, 'version']],
+			['.', ['install', '--ignore-scripts']],
+			['.', ['rebuild', 'native-package']],
+			['.', ['run', 'bootstrap']],
+			['.', ['install', '--ignore-scripts']],
+			['.', ['rebuild', 'native-package']],
+		]);
+	});
+
+	it('installs once when bootstrap leaves package.json unchanged', () => {
+		writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^2.0.0' }, scripts: { bootstrap: 'bootstrap' } });
+		writeJson('package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const { calls, runNpm } = recordNpm();
+
+		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(calls, [
+			['.', ['view', PACKAGE_NAME, 'version']],
+			['.', ['install', '--ignore-scripts']],
+			['.', ['run', 'bootstrap']],
+		]);
+	});
+
 	it('finishes after the version lookup when all manifests are current', () => {
 		writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^3.0.0' } });
 		trackFiles();

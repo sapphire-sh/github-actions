@@ -123,8 +123,17 @@ export const updateUtils = (
 		}
 	}
 	if (installations.has('.')) {
-		const rootManifest = JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8'));
-		if (Object.hasOwn(rootManifest.scripts ?? {}, 'bootstrap')) executeNpm(directory, ['run', 'bootstrap']);
+		const rootManifestText = readFileSync(join(directory, 'package.json'), 'utf8');
+		const rootManifest = JSON.parse(rootManifestText);
+		if (Object.hasOwn(rootManifest.scripts ?? {}, 'bootstrap')) {
+			executeNpm(directory, ['run', 'bootstrap']);
+			if (readFileSync(join(directory, 'package.json'), 'utf8') !== rootManifestText) {
+				executeNpm(directory, ['install', '--ignore-scripts']);
+				if (rebuildPackages.length > 0) {
+					executeNpm(directory, ['rebuild', ...rebuildPackages]);
+				}
+			}
+		}
 	}
 
 	const versions = new Set(
