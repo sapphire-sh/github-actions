@@ -97,7 +97,7 @@ jobs:
       # the pull request step lists it in .git/info/exclude so that its commit leaves it out.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          repository: ${{ github.repository_owner }}/github-actions
+          repository: sapphire-sh/github-actions
           path: .github-actions-shared
 
       - name: Create or update pull request
