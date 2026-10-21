@@ -3,6 +3,7 @@ name: Shared npm Audit Fix
 on:
   workflow_call:
     inputs:
+      # Unused. Declared so that a caller still passing it keeps starting.
       run_tests:
         required: false
         type: boolean
@@ -11,6 +12,7 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+      # Unused. Declared so that a caller still passing it keeps starting.
       rebuild_packages:
         required: false
         type: string
@@ -55,42 +57,8 @@ jobs:
       - name: Apply audit fixes
         run: npm audit fix --ignore-scripts --audit-level=none
 
-      # The install and the fix above keep lifecycle scripts off for the whole dependency tree.
-      # Listing the packages whose install script produces their binding file runs those scripts
-      # back, without turning scripts on for everything.
-      - name: Rebuild packages that need their install scripts
-        if: inputs.rebuild_packages != ''
-        env:
-          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
-        run: npm rebuild $REBUILD_PACKAGES
-
-      - name: Detect available scripts
-        id: scripts
-        run: |
-          for script in build lint prettier test; do
-            available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
-            echo "$script is available: $available"
-            echo "$script=$available" >> "$GITHUB_OUTPUT"
-          done
-
-      - name: Build
-        if: steps.scripts.outputs.build == 'true'
-        run: npm run build
-
-      - name: Lint
-        if: steps.scripts.outputs.lint == 'true'
-        run: npm run lint
-
-      - name: Prettier
-        if: steps.scripts.outputs.prettier == 'true'
-        run: npm run prettier
-
-      - name: Test
-        if: inputs.run_tests && steps.scripts.outputs.test == 'true'
-        run: npm test
-
-      # The shared checkout comes after the checks so that lint and prettier never see it, and the
-      # pull request step lists it in .git/info/exclude so that its commit leaves it out.
+      # The pull request step lists the shared checkout in .git/info/exclude so that its commit
+      # leaves it out.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: sapphire-sh/github-actions

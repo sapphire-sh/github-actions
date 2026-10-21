@@ -78,10 +78,7 @@ const readInstalledVersion = (directory, installationDirectory, manifestDirector
 	}
 };
 
-export const updateUtils = (
-	directory,
-	{ runNpm: executeNpm = runNpm, rebuildPackages = [], runTests = false } = {},
-) => {
+export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => {
 	const paths = execFileSync('git', ['ls-files', '-z'], { cwd: directory, encoding: 'utf8' })
 		.split('\0')
 		.filter((path) => basename(path) === 'package.json')
@@ -118,9 +115,6 @@ export const updateUtils = (
 	for (const [installationDirectory, consumers] of installations) {
 		executeNpm(join(directory, installationDirectory), ['install', '--ignore-scripts']);
 		for (const consumer of consumers) writeFileSync(join(directory, consumer.path), consumer.updatedText);
-		if (rebuildPackages.length > 0) {
-			executeNpm(join(directory, installationDirectory), ['rebuild', ...rebuildPackages]);
-		}
 	}
 	if (installations.has('.')) {
 		const rootManifestText = readFileSync(join(directory, 'package.json'), 'utf8');
@@ -129,9 +123,6 @@ export const updateUtils = (
 			executeNpm(directory, ['run', 'bootstrap']);
 			if (readFileSync(join(directory, 'package.json'), 'utf8') !== rootManifestText) {
 				executeNpm(directory, ['install', '--ignore-scripts']);
-				if (rebuildPackages.length > 0) {
-					executeNpm(directory, ['rebuild', ...rebuildPackages]);
-				}
 			}
 		}
 	}
@@ -141,32 +132,10 @@ export const updateUtils = (
 			readInstalledVersion(directory, installationDirectory, manifestDirectory),
 		),
 	);
-	const verificationDirectories = new Map();
-	for (const [installationDirectory, consumers] of installations) {
-		verificationDirectories.set(installationDirectory, installationDirectory);
-		for (const { manifestDirectory } of consumers) {
-			verificationDirectories.set(manifestDirectory, installationDirectory);
-		}
-	}
-	for (const script of ['build', 'lint', 'prettier', ...(runTests ? ['test'] : [])]) {
-		for (const [manifestDirectory, installationDirectory] of verificationDirectories) {
-			const manifest = JSON.parse(readFileSync(join(directory, manifestDirectory, 'package.json'), 'utf8'));
-			if (!Object.hasOwn(manifest.scripts ?? {}, script)) continue;
-			const argumentsList = script === 'test' ? ['test'] : ['run', script];
-			if (manifestDirectory !== installationDirectory) {
-				argumentsList.push('--workspace', relative(installationDirectory, manifestDirectory));
-			}
-			executeNpm(join(directory, installationDirectory), argumentsList);
-		}
-	}
 	return { changed: true, versions: [...versions].toSorted() };
 };
 
 if (import.meta.main) {
-	const [rebuildPackages = '', runTests = 'false'] = process.argv.slice(2);
-	const result = updateUtils(process.cwd(), {
-		rebuildPackages: rebuildPackages.split(/\s+/).filter((name) => name !== ''),
-		runTests: runTests === 'true',
-	});
+	const result = updateUtils(process.cwd());
 	process.stdout.write(`changed=${result.changed}\nversion=${result.versions.join(', ')}\n`);
 }

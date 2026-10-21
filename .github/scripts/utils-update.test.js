@@ -86,7 +86,7 @@ describe('updateUtils', () => {
 		}
 	});
 
-	it('installs a shared workspace lockfile once and checks scripts in stage order', () => {
+	it('installs a shared workspace lockfile once and runs bootstrap as its only script', () => {
 		const scripts = { bootstrap: 'bootstrap', build: 'build', lint: 'lint', prettier: 'prettier', test: 'test' };
 		writeJson('package.json', {
 			workspaces: ['packages/*'],
@@ -100,23 +100,11 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm, rebuildPackages: ['native-package'], runTests: true }), {
-			changed: true,
-			versions: ['3.0.0'],
-		});
+		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
-			['.', ['rebuild', 'native-package']],
 			['.', ['run', 'bootstrap']],
-			['.', ['run', 'build']],
-			['.', ['run', 'build', '--workspace', 'packages/web']],
-			['.', ['run', 'lint']],
-			['.', ['run', 'lint', '--workspace', 'packages/web']],
-			['.', ['run', 'prettier']],
-			['.', ['run', 'prettier', '--workspace', 'packages/web']],
-			['.', ['test']],
-			['.', ['test', '--workspace', 'packages/web']],
 		]);
 	});
 
@@ -171,17 +159,15 @@ describe('updateUtils', () => {
 			return output;
 		};
 
-		assert.deepEqual(
-			updateUtils(directory, { runNpm: addDevDependencyOnBootstrap, rebuildPackages: ['native-package'] }),
-			{ changed: true, versions: ['3.0.0'] },
-		);
+		assert.deepEqual(updateUtils(directory, { runNpm: addDevDependencyOnBootstrap }), {
+			changed: true,
+			versions: ['3.0.0'],
+		});
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
-			['.', ['rebuild', 'native-package']],
 			['.', ['run', 'bootstrap']],
 			['.', ['install', '--ignore-scripts']],
-			['.', ['rebuild', 'native-package']],
 		]);
 	});
 
@@ -234,7 +220,7 @@ describe('updateUtils', () => {
 		copyFileSync(new URL('./utils-update.js', import.meta.url), helperPath);
 
 		assert.equal(
-			execFileSync(process.execPath, [helperPath, '', 'false'], { cwd: directory, encoding: 'utf8' }),
+			execFileSync(process.execPath, [helperPath], { cwd: directory, encoding: 'utf8' }),
 			'changed=false\nversion=\n',
 		);
 	});

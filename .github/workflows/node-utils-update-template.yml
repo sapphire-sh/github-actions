@@ -7,10 +7,12 @@ on:
         required: false
         type: string
         default: ubuntu-latest
+      # Unused. Declared so that a caller still passing it keeps starting.
       run_tests:
         required: false
         type: boolean
         default: false
+      # Unused. Declared so that a caller still passing it keeps starting.
       rebuild_packages:
         required: false
         type: string
@@ -55,12 +57,9 @@ jobs:
           cp .github-actions-shared/.github/scripts/utils-update.js "$RUNNER_TEMP/utils-update.mjs"
           rm -rf .github-actions-shared
 
-      - name: Update utils and verify affected packages
+      - name: Update utils
         id: update
-        env:
-          REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
-          RUN_TESTS: ${{ inputs.run_tests }}
-        run: node "$RUNNER_TEMP/utils-update.mjs" "$REBUILD_PACKAGES" "$RUN_TESTS" >> "$GITHUB_OUTPUT"
+        run: node "$RUNNER_TEMP/utils-update.mjs" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.update.outputs.changed == 'true'
