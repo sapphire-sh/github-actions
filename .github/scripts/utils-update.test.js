@@ -225,6 +225,25 @@ describe('updateUtils', () => {
 		});
 	});
 
+	it('reports several installed versions in numeric order', () => {
+		for (const path of ['package.json', 'apps/web/package.json']) {
+			writeJson(path, { dependencies: { [PACKAGE_NAME]: '2.0.0' } });
+			writeJson(join(dirname(path), 'package-lock.json'), { packages: { '': {} } });
+		}
+		trackFiles();
+		const installedVersions = { '.': '3.9.0', 'apps/web': '3.10.0' };
+		const runNpm = (workingDirectory, argumentsList) => {
+			if (argumentsList[0] === 'view') return '3.0.0\n';
+			const installationDirectory = relative(directory, workingDirectory) || '.';
+			writeJson(join(installationDirectory, 'package-lock.json'), {
+				packages: { [`node_modules/${PACKAGE_NAME}`]: { version: installedVersions[installationDirectory] } },
+			});
+			return '';
+		};
+
+		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.9.0', '3.10.0'] });
+	});
+
 	it('prints workflow outputs from a standalone copy of the helper', () => {
 		writeJson('package.json', { name: 'example' });
 		trackFiles();

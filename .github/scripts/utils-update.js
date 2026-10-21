@@ -140,7 +140,10 @@ export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => 
 			readInstalledVersion(directory, installationDirectory, manifestDirectory),
 		),
 	);
-	return { changed: true, versions: [...versions].toSorted() };
+	return {
+		changed: true,
+		versions: [...versions].toSorted((left, right) => left.localeCompare(right, undefined, { numeric: true })),
+	};
 };
 
 if (import.meta.main) {
