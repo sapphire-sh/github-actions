@@ -38,7 +38,7 @@ const replaceRanges = (text, version) => {
 			cursor += 1;
 		} else if (path.length === 2 && DEPENDENCY_FIELDS.includes(path[0]) && path[1] === PACKAGE_NAME) {
 			const range = JSON.parse(token[0]);
-			const prefix = /^[^0-9]*/.exec(range)[0];
+			const prefix = /^\D*/.exec(range)[0];
 			replacements.push({ start: token.index, end: token.index + token[0].length, value: `${prefix}${version}` });
 		}
 	};
@@ -94,7 +94,7 @@ export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => 
 	if (manifests.length === 0) return { changed: false, versions: [] };
 
 	const latest = executeNpm(directory, ['view', PACKAGE_NAME, 'version']).trim();
-	const changed = manifests.filter(({ ranges }) => ranges.some((range) => range.replace(/^[^0-9]*/, '') !== latest));
+	const changed = manifests.filter(({ ranges }) => ranges.some((range) => range.replace(/^\D*/, '') !== latest));
 	if (changed.length === 0) return { changed: false, versions: [] };
 
 	const installations = new Map();
