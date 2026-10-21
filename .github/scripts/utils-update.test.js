@@ -65,6 +65,18 @@ describe('updateUtils', () => {
 		]);
 	});
 
+	it('updates the dependency value among number, boolean and null values', () => {
+		const manifest =
+			'{\n\t"private": true,\n\t"version": 1.5e+3,\n\t"offset": -2,\n\t"license": null,\n\t"files": ["lib", 3],\n\t"dependencies": { "@sapphire-sh/utils": "^2.0.0" }\n}\n';
+		writeFile('package.json', manifest);
+		writeJson('package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const { runNpm } = recordNpm();
+
+		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.equal(readFileSync(join(directory, 'package.json'), 'utf8'), manifest.replace('^2.0.0', '^3.0.0'));
+	});
+
 	it('installs independent manifests in their own lockfile directories', () => {
 		for (const path of ['package.json', 'apps/web/package.json']) {
 			writeJson(path, { dependencies: { [PACKAGE_NAME]: '2.0.0' } });

@@ -16,9 +16,7 @@ const runNpm = (directory, argumentsList) => {
 };
 
 const replaceRanges = (text, version) => {
-	const tokens = Array.from(
-		text.matchAll(/"(?:\\.|[^"\\])*"|[[\]{}:,]|true|false|null|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g),
-	);
+	const tokens = Array.from(text.matchAll(/"(?:\\.|[^"\\])*"|[[\]{}:,]|[\w.+-]+/g));
 	const replacements = [];
 	let cursor = 0;
 	const visit = (path) => {
