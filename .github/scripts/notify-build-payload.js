@@ -21,10 +21,18 @@ export const fetchRunStartedAt = async ({ apiUrl, repository, runId, token, fetc
 export const buildPayload = (env) => {
 	const e = (k) => env[k] ?? '';
 
-	const success = e('RESULT') === 'success';
-	const color = success ? 'good' : 'danger';
-	const emoji = success ? ':white_check_mark:' : ':x:';
-	const statusText = success ? 'succeeded' : 'failed';
+	let color = 'danger';
+	let emoji = ':x:';
+	let statusText = 'failed';
+	if (e('RESULT') === 'success') {
+		color = 'good';
+		emoji = ':white_check_mark:';
+		statusText = 'succeeded';
+	} else if (e('RESULT') === 'cancelled') {
+		color = '#808080';
+		emoji = ':no_entry_sign:';
+		statusText = 'cancelled';
+	}
 
 	const runStartedAt = e('RUN_STARTED_AT');
 	const diff = runStartedAt ? Math.floor((Date.now() - new Date(runStartedAt).getTime()) / 1000) : 0;

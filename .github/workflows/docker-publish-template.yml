@@ -328,7 +328,7 @@ jobs:
       actions: read
     uses: ./.github/workflows/notify-template.yml
     with:
-      result: ${{ (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) && 'failure' || 'success' }}
+      result: ${{ case(contains(needs.*.result, 'failure'), 'failure', contains(needs.*.result, 'cancelled'), 'cancelled', 'success') }}
       context: ${{ inputs.image_name }}
       job: build-and-push
       runner: ${{ inputs.runner }}

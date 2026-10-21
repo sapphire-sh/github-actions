@@ -31,6 +31,33 @@ describe('buildPayload', () => {
 		assert.equal(attachment.title_link, 'https://github.com/owner/repo/commit/0123456789abcdef');
 		assert.equal(authorOf(attachment), 'Example <example@example.com>');
 	});
+
+	it('shows a cancelled run in grey with the no entry sign and the cancelled status', () => {
+		const [attachment] = buildPayload({
+			RESULT: 'cancelled',
+			CONTEXT: 'my-app',
+			SERVER_URL: 'https://github.com',
+			REPOSITORY: 'owner/repo',
+			RUN_ID: '123',
+		}).attachments;
+		assert.equal(attachment.color, '#808080');
+		assert.equal(
+			attachment.text,
+			':no_entry_sign: *`my-app` cancelled* | <https://github.com/owner/repo/actions/runs/123|View run>',
+		);
+	});
+
+	it('shows a failed run in red with the cross mark and the failed status', () => {
+		const [attachment] = buildPayload({
+			RESULT: 'failure',
+			CONTEXT: 'my-app',
+			SERVER_URL: 'https://github.com',
+			REPOSITORY: 'owner/repo',
+			RUN_ID: '123',
+		}).attachments;
+		assert.equal(attachment.color, 'danger');
+		assert.equal(attachment.text, ':x: *`my-app` failed* | <https://github.com/owner/repo/actions/runs/123|View run>');
+	});
 });
 
 describe('fetchRunStartedAt', () => {
