@@ -76,12 +76,12 @@ const readInstalledVersion = (directory, installationDirectory, manifestDirector
 	}
 };
 
-export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => {
+const readConsumerManifests = (directory) => {
 	const paths = execFileSync('git', ['ls-files', '-z'], { cwd: directory, encoding: 'utf8' })
 		.split('\0')
 		.filter((path) => basename(path) === 'package.json')
 		.toSorted();
-	const manifests = paths
+	return paths
 		.map((path) => {
 			const text = readFileSync(join(directory, path), 'utf8');
 			const manifest = JSON.parse(text);
@@ -91,12 +91,9 @@ export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => 
 			return { path, text, manifest, ranges };
 		})
 		.filter(({ ranges }) => ranges.length > 0);
-	if (manifests.length === 0) return { changed: false, versions: [] };
+};
 
-	const latest = executeNpm(directory, ['view', PACKAGE_NAME, 'version']).trim();
-	const changed = manifests.filter(({ ranges }) => ranges.some((range) => range.replace(/^\D*/, '') !== latest));
-	if (changed.length === 0) return { changed: false, versions: [] };
-
+const writeUpdatedManifests = (directory, changed, latest) => {
 	const installations = new Map();
 	for (const [index, manifest] of changed.entries()) {
 		process.stderr.write(`Updating ${index + 1}/${changed.length}: ${manifest.path}\n`);
@@ -109,21 +106,34 @@ export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => 
 		if (!installations.has(installationDirectory)) installations.set(installationDirectory, []);
 		installations.get(installationDirectory).push(manifest);
 	}
+	return installations;
+};
 
+const runRootBootstrap = (directory, executeNpm) => {
+	const rootManifestText = readFileSync(join(directory, 'package.json'), 'utf8');
+	const rootManifest = JSON.parse(rootManifestText);
+	if (Object.hasOwn(rootManifest.scripts ?? {}, 'bootstrap')) {
+		executeNpm(directory, ['run', 'bootstrap']);
+		if (readFileSync(join(directory, 'package.json'), 'utf8') !== rootManifestText) {
+			executeNpm(directory, ['install', '--ignore-scripts']);
+		}
+	}
+};
+
+export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => {
+	const manifests = readConsumerManifests(directory);
+	if (manifests.length === 0) return { changed: false, versions: [] };
+
+	const latest = executeNpm(directory, ['view', PACKAGE_NAME, 'version']).trim();
+	const changed = manifests.filter(({ ranges }) => ranges.some((range) => range.replace(/^\D*/, '') !== latest));
+	if (changed.length === 0) return { changed: false, versions: [] };
+
+	const installations = writeUpdatedManifests(directory, changed, latest);
 	for (const [installationDirectory, consumers] of installations) {
 		executeNpm(join(directory, installationDirectory), ['install', '--ignore-scripts']);
 		for (const consumer of consumers) writeFileSync(join(directory, consumer.path), consumer.updatedText);
 	}
-	if (installations.has('.')) {
-		const rootManifestText = readFileSync(join(directory, 'package.json'), 'utf8');
-		const rootManifest = JSON.parse(rootManifestText);
-		if (Object.hasOwn(rootManifest.scripts ?? {}, 'bootstrap')) {
-			executeNpm(directory, ['run', 'bootstrap']);
-			if (readFileSync(join(directory, 'package.json'), 'utf8') !== rootManifestText) {
-				executeNpm(directory, ['install', '--ignore-scripts']);
-			}
-		}
-	}
+	if (installations.has('.')) runRootBootstrap(directory, executeNpm);
 
 	const versions = new Set(
 		changed.map(({ installationDirectory, manifestDirectory }) =>
