@@ -61,6 +61,20 @@ jobs:
         id: update
         run: node "$RUNNER_TEMP/utils-update.mjs" >> "$GITHUB_OUTPUT"
 
+      # continue-on-error keeps a fix script that exits non-zero from stopping the pull request step,
+      # which still commits whatever the scripts fixed.
+      - name: Apply lint and format fixes
+        if: steps.update.outputs.changed == 'true'
+        continue-on-error: true
+        run: |
+          status=0
+          for script in lint:fix prettier:fix; do
+            if SCRIPT="$script" node -e "process.exit(Object.hasOwn(require('./package.json').scripts ?? {}, process.env.SCRIPT) ? 0 : 1)"; then
+              npm run "$script" || status=1
+            fi
+          done
+          exit "$status"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: steps.update.outputs.changed == 'true'
         with:

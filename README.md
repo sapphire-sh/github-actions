@@ -254,7 +254,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases
+1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
@@ -264,6 +264,7 @@ jobs:
 - The calling job's `permissions` must include `issues: write` together with `contents: write` and `pull-requests: write`, since a called workflow only receives the permissions its caller grants
 - Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
 - The project's `build`, `lint`, `prettier` and `test` scripts run on the pull request through its `pull_request` workflows, such as the Shared Node Verify workflow, so a failing check shows on the pull request's status checks rather than stopping it from opening
+- The project's `lint:fix` and `prettier:fix` scripts, whichever the root package.json defines, run before the pull request step and their changes go into the same commit; a fix script that exits non-zero keeps what it fixed and the pull request still opens
 
 ---
 
@@ -352,7 +353,7 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty.
+1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty. After the update, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
@@ -361,6 +362,7 @@ jobs:
 - `PULL_REQUEST_TOKEN` must be able to push workflow files, since the pull request includes the changes bootstrap makes under `.github/workflows`.
 - The schedule belongs to the caller. The example checks daily; other dependencies can use a weekly Dependabot schedule.
 - The project's `build`, `lint`, `prettier` and `test` scripts run on the pull request through its `pull_request` workflows, such as the Shared Node Verify workflow, so a failing check shows on the pull request's status checks rather than stopping it from opening.
+- The project's `lint:fix` and `prettier:fix` scripts, whichever the root package.json defines, run before the pull request step and their changes go into the same commit; a fix script that exits non-zero keeps what it fixed and the pull request still opens.
 
 ---
 
@@ -407,7 +409,7 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 and, when bootstrap changed anything, a run that only added new files included, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and a table of the changed files (`File`, `Change`) followed by the whole diff in a collapsed block as the pull request body, leaving the diff out when the body would exceed 65,536 bytes: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases
+1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 and, when bootstrap changed anything, a run that only added new files included, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and a table of the changed files (`File`, `Change`) followed by the whole diff in a collapsed block as the pull request body, leaving the diff out when the body would exceed 65,536 bytes: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases. After bootstrap, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
@@ -417,6 +419,7 @@ jobs:
 - `PULL_REQUEST_TOKEN` must be able to push workflow files, since the pull request includes the changes bootstrap makes under `.github/workflows`
 - Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
 - The project's `build`, `lint`, `prettier` and `test` scripts run on the pull request through its `pull_request` workflows, such as the Shared Node Verify workflow, so a failing check shows on the pull request's status checks rather than stopping it from opening
+- The project's `lint:fix` and `prettier:fix` scripts, whichever the root package.json defines, run before the pull request step and their changes go into the same commit; a fix script that exits non-zero keeps what it fixed and the pull request still opens
 
 ---
 
