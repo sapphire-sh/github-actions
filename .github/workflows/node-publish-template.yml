@@ -15,6 +15,10 @@ on:
         required: false
         type: boolean
         default: false
+      sonar_scan:
+        required: false
+        type: boolean
+        default: false
       runner:
         required: false
         type: string
@@ -34,6 +38,8 @@ on:
         required: false
       TAILSCALE_OAUTH_CLIENT_SECRET:
         required: false
+      SONAR_TOKEN:
+        required: false
 
 permissions: {}
 
@@ -44,7 +50,7 @@ concurrency:
 jobs:
   test:
     runs-on: ${{ inputs.runner }}
-    if: inputs.run_tests || github.event_name == 'pull_request'
+    if: inputs.run_tests || inputs.sonar_scan || github.event_name == 'pull_request'
     permissions:
       contents: read
     steps:
@@ -59,7 +65,7 @@ jobs:
       - name: Detect available scripts
         id: scripts
         run: |
-          for script in build lint prettier test; do
+          for script in build lint prettier test coverage; do
             available="$(node -p "Object.hasOwn(require('./package.json').scripts ?? {}, '$script')")"
             echo "$script is available: $available"
             echo "$script=$available" >> "$GITHUB_OUTPUT"
@@ -74,8 +80,16 @@ jobs:
         if: steps.scripts.outputs.prettier == 'true'
         run: npm run prettier
       - name: Test
-        if: steps.scripts.outputs.test == 'true'
+        if: steps.scripts.outputs.test == 'true' && !(inputs.sonar_scan && steps.scripts.outputs.coverage == 'true')
         run: npm test
+      - name: Coverage
+        if: inputs.sonar_scan && steps.scripts.outputs.coverage == 'true'
+        run: npm run coverage
+      - name: SonarQube Scan
+        if: inputs.sonar_scan
+        uses: SonarSource/sonarqube-scan-action@d209202bc7d53ff1cc128f7f907dac145c9d6ae9 # v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   publish:
     needs: [test]

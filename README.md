@@ -142,30 +142,32 @@ jobs:
 
 **Inputs:**
 
-| Name           | Required | Default       | Description                                                                                                                                                         |
-| -------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`); a bumped number that npm already holds is raised by patch level until an unused one is found |
-| `release_tag`  | No       | `''`          | Existing tag to check out and publish without bumping or pushing (`2.1.0` is read as `v2.1.0`)                                                                      |
-| `run_tests`    | No       | `false`       | Run whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines before publishing; `pull_request` events run them regardless of this value  |
-| `runner`       | No       | `self-hosted` | Runner that all jobs run on                                                                                                                                         |
+| Name           | Required | Default       | Description                                                                                                                                                                                                        |
+| -------------- | -------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `version_bump` | No       | `minor`       | Version bump type passed to `npm version` (`major`, `minor`, `patch`); a bumped number that npm already holds is raised by patch level until an unused one is found                                                |
+| `release_tag`  | No       | `''`          | Existing tag to check out and publish without bumping or pushing (`2.1.0` is read as `v2.1.0`)                                                                                                                     |
+| `run_tests`    | No       | `false`       | Run whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines before publishing; `pull_request` events run them regardless of this value                                                 |
+| `sonar_scan`   | No       | `false`       | Run the SonarQube Cloud scan at the end of the test job, with npm run coverage in place of npm test when the package defines a coverage script; the project needs automatic analysis turned off in SonarQube Cloud |
+| `runner`       | No       | `self-hosted` | Runner that all jobs run on                                                                                                                                                                                        |
 
 **Secrets:**
 
-| Name                            | Required | Description                                                                      |
-| ------------------------------- | -------- | -------------------------------------------------------------------------------- |
-| `NPM_TOKEN`                     | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC) |
-| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                                 |
-| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                          |
-| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                 |
-| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                 |
-| `TAILSCALE_OAUTH_CLIENT_ID`     | No       | Tailscale OAuth client ID                                                        |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | No       | Tailscale OAuth client secret                                                    |
+| Name                            | Required | Description                                                                         |
+| ------------------------------- | -------- | ----------------------------------------------------------------------------------- |
+| `NPM_TOKEN`                     | No       | Unused; the npm registry publish authenticates through trusted publishing (OIDC)    |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                                    |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                             |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                    |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                    |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | No       | Tailscale OAuth client ID                                                           |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | No       | Tailscale OAuth client secret                                                       |
+| `SONAR_TOKEN`                   | No       | SonarQube Cloud token the scan authenticates with; required when sonar_scan is true |
 
 **Trusted publishing:** The npm registry publish authenticates through trusted publishing (OIDC), so every package needs a trusted publisher configured on npmjs.com before its first publish. npm validates the calling workflow rather than this reusable workflow, so register the caller repository and the caller workflow filename.
 
 **Jobs:**
 
-1. **test**: Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if `run_tests` is `false`, except on `pull_request` events)
+1. **test**: Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if both run_tests and sonar_scan are false, except on pull_request events). When sonar_scan is true, npm run coverage replaces npm test where the package defines a coverage script, and the SonarQube Cloud scan runs last
 2. **publish**: Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `test` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
