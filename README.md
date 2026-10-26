@@ -167,7 +167,7 @@ jobs:
 
 **Jobs:**
 
-1. **test**: Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if both run_tests and sonar_scan are false, except on pull_request events). When sonar_scan is true, npm run coverage replaces npm test where the package defines a coverage script, and the SonarQube Cloud scan runs last
+1. **test**: Runs `npm ci --ignore-scripts`, then whichever of the `build`, `lint`, `prettier` and `test` scripts the package defines, in that order, on Node.js 26 (skipped if both run_tests and sonar_scan are false, except on pull_request events). When sonar_scan is true, the checkout fetches the whole history, npm run coverage replaces npm test where the package defines a coverage script, and the SonarQube Cloud scan runs last
 2. **publish**: Bumps the version, raising it by patch level past any number npm already holds, pushes the commit and tag, publishes to npm (with OIDC provenance, under the `latest` dist-tag) and GitHub Packages, then creates a GitHub release with auto-generated notes. When `release_tag` is set, it checks out that tag instead, skips the bump and push, and creates the release for that tag. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `test` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
