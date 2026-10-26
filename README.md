@@ -241,12 +241,12 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                          |
-| ------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                      |
-| `runner`           | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                      |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                      |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty |
+| Name               | Required | Default         | Description                                                                                                                               |
+| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `runner`           | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                                                           |
+| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
@@ -256,7 +256,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
@@ -340,12 +340,12 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                          |
-| ------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                   |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                      |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                      |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty |
+| Name               | Required | Default         | Description                                                                                                                               |
+| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
+| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
@@ -355,7 +355,7 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty. After the update, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty and the owner is a user. After the update, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
@@ -396,12 +396,12 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                          |
-| ------------------ | -------- | --------------- | ---------------------------------------------------------------------------------------------------- |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                      |
-| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                   |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                      |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty |
+| Name               | Required | Default         | Description                                                                                                                               |
+| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
+| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
+| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
@@ -411,7 +411,7 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 and, when bootstrap changed anything, a run that only added new files included, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and a table of the changed files (`File`, `Change`) followed by the whole diff in a collapsed block as the pull request body, leaving the diff out when the body would exceed 65,536 bytes: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty, to the pull request in both cases. After bootstrap, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **update**: Runs `npm ci --ignore-scripts` and `npm run bootstrap` on Node.js 26 and, when bootstrap changed anything, a run that only added new files included, force-pushes the result to the `chore/shared-config-update` branch with the installed `@sapphire-sh/utils` version in the commit and pull request title and a table of the changed files (`File`, `Change`) followed by the whole diff in a collapsed block as the pull request body, leaving the diff out when the body would exceed 65,536 bytes: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After bootstrap, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 

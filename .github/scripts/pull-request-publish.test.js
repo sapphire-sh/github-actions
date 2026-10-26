@@ -141,7 +141,15 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.1" }\n');
 		const { calls, runGh } = recordGh([]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignees: [], owner: OWNER, runGh });
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: [],
+			owner: OWNER,
+			ownerType: 'User',
+			runGh,
+		});
 
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
@@ -153,11 +161,59 @@ describe('publishPullRequest', () => {
 		writeLockfile('{ "version": "1.0.1" }\n');
 		const { calls, runGh } = recordGh([{ number: 7 }]);
 
-		publishPullRequest(directory, { branch: BRANCH, title: TITLE, body: BODY, assignees: [], owner: OWNER, runGh });
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: [],
+			owner: OWNER,
+			ownerType: 'User',
+			runGh,
+		});
 
 		assert.deepEqual(calls, [
 			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
 			['pr', 'edit', '7', '--body', BODY, '--add-assignee', OWNER],
+		]);
+	});
+
+	it('skips the assignee on a new pull request when no assignee is listed and the owner is an organization', () => {
+		writeLockfile('{ "version": "1.0.1" }\n');
+		const { calls, runGh } = recordGh([]);
+
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: [],
+			owner: OWNER,
+			ownerType: 'Organization',
+			runGh,
+		});
+
+		assert.deepEqual(calls, [
+			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
+			['pr', 'create', '--title', TITLE, '--body', BODY],
+		]);
+	});
+
+	it('skips the assignee on the open pull request when no assignee is listed and the owner is an organization', () => {
+		writeLockfile('{ "version": "1.0.1" }\n');
+		const { calls, runGh } = recordGh([{ number: 7 }]);
+
+		publishPullRequest(directory, {
+			branch: BRANCH,
+			title: TITLE,
+			body: BODY,
+			assignees: [],
+			owner: OWNER,
+			ownerType: 'Organization',
+			runGh,
+		});
+
+		assert.deepEqual(calls, [
+			['pr', 'list', '--head', BRANCH, '--state', 'open', '--json', 'number'],
+			['pr', 'edit', '7', '--body', BODY],
 		]);
 	});
 

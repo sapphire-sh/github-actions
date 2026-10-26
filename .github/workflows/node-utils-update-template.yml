@@ -93,6 +93,7 @@ jobs:
           echo '.github-actions-shared/' >> .git/info/exclude
           title="chore(deps): bump @sapphire-sh/utils to $VERSION"
           body="$(node .github-actions-shared/.github/scripts/change-summary.js)"
+          owner_type="$(gh api "users/$OWNER" --jq .type)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" "$OWNER" <<< "$body"
+          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$title" "$ASSIGNEE" "$OWNER" "$owner_type" <<< "$body"

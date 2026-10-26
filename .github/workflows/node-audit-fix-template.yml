@@ -91,6 +91,7 @@ jobs:
         run: |
           echo '.github-actions-shared/' >> .git/info/exclude
           body="$(node .github-actions-shared/.github/scripts/dependency-summary.js)"
+          owner_type="$(gh api "users/$OWNER" --jq .type)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" "$OWNER" <<< "$body"
+          node .github-actions-shared/.github/scripts/pull-request-publish.js "$BRANCH" "$TITLE" "$ASSIGNEE" "$OWNER" "$owner_type" <<< "$body"
