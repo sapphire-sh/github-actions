@@ -5,10 +5,14 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
 const LOCKFILE_NAME = 'package-lock.json';
+const MANIFEST_NAME = 'package.json';
 const NODE_MODULES_SEGMENT = 'node_modules/';
 const ROOT_KEY = '';
+const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
 const packageName = (key) => key.slice(key.lastIndexOf(NODE_MODULES_SEGMENT) + NODE_MODULES_SEGMENT.length);
+
+const declaringManifestPath = (key) => join(key, MANIFEST_NAME);
 
 const formatRow = (cells) => `| ${cells.join(' | ')} |`;
 
@@ -29,6 +33,20 @@ const mergeKeys = (beforeKeys, afterKeys) => {
 	return keys;
 };
 
+const rangeRows = (key, beforeEntry = {}, afterEntry = {}) =>
+	DEPENDENCY_FIELDS.flatMap((field) => {
+		const beforeRanges = beforeEntry[field] ?? {};
+		const afterRanges = afterEntry[field] ?? {};
+		return mergeKeys(Object.keys(beforeRanges), Object.keys(afterRanges))
+			.filter((name) => beforeRanges[name] !== afterRanges[name])
+			.map((name) => [
+				`\`${name}\``,
+				beforeRanges[name] ?? '',
+				afterRanges[name] ?? '',
+				`\`${declaringManifestPath(key)}\``,
+			]);
+	});
+
 const lockfileRows = (directory, lockfilePath) => {
 	const before = JSON.parse(
 		execFileSync('git', ['show', `HEAD:${lockfilePath}`], { cwd: directory, encoding: 'utf8' }),
@@ -41,14 +59,20 @@ const lockfileRows = (directory, lockfilePath) => {
 			.map(([key]) => `\`${packageName(key)}\``)
 			.join(', ');
 
-	return mergeKeys(Object.keys(before), Object.keys(after))
-		.filter((key) => key !== ROOT_KEY && before[key]?.version !== after[key]?.version)
-		.map((key) => {
-			const name = packageName(key);
-			const from = before[key]?.version ?? '';
-			const to = after[key]?.version ?? '';
-			return [`\`${name}\``, from, to, Object.hasOwn(before, key) ? '' : requiredBy(name)];
-		});
+	const versionRows = (key) => {
+		if (key === ROOT_KEY || before[key]?.version === after[key]?.version) {
+			return [];
+		}
+		const name = packageName(key);
+		const from = before[key]?.version ?? '';
+		const to = after[key]?.version ?? '';
+		return [[`\`${name}\``, from, to, Object.hasOwn(before, key) ? '' : requiredBy(name)]];
+	};
+
+	return mergeKeys(Object.keys(before), Object.keys(after)).flatMap((key) => [
+		...versionRows(key),
+		...(key.includes(NODE_MODULES_SEGMENT) ? [] : rangeRows(key, before[key], after[key])),
+	]);
 };
 
 export const summarizeLockfileChanges = (directory, manifestPaths = ['package.json']) => {

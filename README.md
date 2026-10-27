@@ -260,7 +260,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed packages (`Package`, `From`, `To`, `Required by`) as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed package versions and dependency ranges (`Package`, `From`, `To`, `Required by`), a range row naming the manifest that declares it under `Required by`, as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 

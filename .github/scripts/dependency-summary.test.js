@@ -30,7 +30,7 @@ const writeLockfile = (packages, lockfilePath = 'package-lock.json') => {
 };
 
 describe('summarizeLockfileChanges', () => {
-	it('lists bumped, added and removed packages in lockfile order and leaves out unchanged and root entries', () => {
+	it('lists bumped, added and removed packages in lockfile order and leaves out unchanged entries and the root version', () => {
 		writeLockfile({
 			'': { name: 'example', version: '1.0.0' },
 			'node_modules/a': { version: '1.0.0' },
@@ -101,6 +101,40 @@ describe('summarizeLockfileChanges', () => {
 				'| package-lock.json | `a` | 1.0.0 | 1.1.0 |  |',
 				'| web/package-lock.json | `b` | 2.0.0 | 2.1.0 |  |',
 				'| web/package-lock.json | `c` |  | 3.0.0 | `b` |',
+				'',
+			].join('\n'),
+		);
+	});
+
+	it('lists dependency range changes of the root and workspace entries with the declaring manifest as Required by', () => {
+		writeLockfile({
+			'': { name: 'example', version: '1.0.0', devDependencies: { a: '^1.0.0', b: '^2.0.0' } },
+			'node_modules/a': { version: '1.0.0' },
+			'packages/web': { name: 'web', version: '1.0.0', dependencies: { c: '^3.0.0' } },
+		});
+		git('add', '-A');
+		git('commit', '--quiet', '-m', 'initial');
+
+		writeLockfile({
+			'': { name: 'example', version: '1.0.0', devDependencies: { a: '1.0.0', b: '^2.0.0' } },
+			'node_modules/a': { version: '1.0.0' },
+			'packages/web': {
+				name: 'web',
+				version: '1.0.0',
+				dependencies: { d: '^4.0.0' },
+				devDependencies: { e: '^5.0.0' },
+			},
+		});
+
+		assert.equal(
+			summarizeLockfileChanges(directory),
+			[
+				'| Package | From | To | Required by |',
+				'| --- | --- | --- | --- |',
+				'| `a` | ^1.0.0 | 1.0.0 | `package.json` |',
+				'| `c` | ^3.0.0 |  | `packages/web/package.json` |',
+				'| `d` |  | ^4.0.0 | `packages/web/package.json` |',
+				'| `e` |  | ^5.0.0 | `packages/web/package.json` |',
 				'',
 			].join('\n'),
 		);
