@@ -139,4 +139,28 @@ describe('summarizeLockfileChanges', () => {
 			].join('\n'),
 		);
 	});
+
+	it('names a workspace entry by its key when its version changes', () => {
+		writeLockfile({
+			'': { name: 'example', version: '1.0.0' },
+			'packages/web': { name: 'web', version: '1.0.0' },
+		});
+		git('add', '-A');
+		git('commit', '--quiet', '-m', 'initial');
+
+		writeLockfile({
+			'': { name: 'example', version: '1.0.0' },
+			'packages/web': { name: 'web', version: '1.1.0' },
+		});
+
+		assert.equal(
+			summarizeLockfileChanges(directory),
+			[
+				'| Package | From | To | Required by |',
+				'| --- | --- | --- | --- |',
+				'| `packages/web` | 1.0.0 | 1.1.0 |  |',
+				'',
+			].join('\n'),
+		);
+	});
 });

@@ -10,7 +10,10 @@ const NODE_MODULES_SEGMENT = 'node_modules/';
 const ROOT_KEY = '';
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
-const packageName = (key) => key.slice(key.lastIndexOf(NODE_MODULES_SEGMENT) + NODE_MODULES_SEGMENT.length);
+const packageName = (key) =>
+	key.includes(NODE_MODULES_SEGMENT)
+		? key.slice(key.lastIndexOf(NODE_MODULES_SEGMENT) + NODE_MODULES_SEGMENT.length)
+		: key;
 
 const declaringManifestPath = (key) => join(key, MANIFEST_NAME);
 
