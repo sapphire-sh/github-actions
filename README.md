@@ -52,18 +52,20 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default                   | Description                                                                                                                                                   |
-| ------------------ | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `image_name`       | Yes      | —                         | Docker image name (appended to registry host)                                                                                                                 |
-| `dockerfile`       | No       | `Dockerfile`              | Path to the Dockerfile to build, passed as is to the build step's `file` input; the build context stays the repository root                                   |
-| `run_tests`        | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building, with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty |
-| `build_image`      | No       | `true`                    | Build the Docker image                                                                                                                                        |
-| `push_image`       | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets); ignored on `pull_request` events, which never push or redeploy         |
-| `runner`           | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                                   |
-| `runner_amd64`     | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                                               |
-| `runner_arm64`     | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                                               |
-| `platforms`        | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms, each built as its own job on the runner mapped to it                                                                        |
-| `rebuild_packages` | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                    |
+| Name                    | Required | Default                   | Description                                                                                                                                                   |
+| ----------------------- | -------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image_name`            | Yes      | —                         | Docker image name (appended to registry host)                                                                                                                 |
+| `dockerfile`            | No       | `Dockerfile`              | Path to the Dockerfile to build, passed as is to the build step's `file` input; the build context stays the repository root                                   |
+| `run_tests`             | No       | `false`                   | Run `npm ci --ignore-scripts && npm test` before building, with `npm rebuild` on the `rebuild_packages` packages between the two when that input is not empty |
+| `build_image`           | No       | `true`                    | Build the Docker image                                                                                                                                        |
+| `push_image`            | No       | `true`                    | Push the image and trigger Portainer redeploy (requires Tailscale + registry secrets); ignored on `pull_request` events, which never push or redeploy         |
+| `runner`                | No       | `self-hosted`             | Runner that the test, prepare, merge and notify jobs run on                                                                                                   |
+| `runner_amd64`          | No       | `ubuntu-latest`           | Runner that the `linux/amd64` build job runs on                                                                                                               |
+| `runner_arm64`          | No       | `self-hosted`             | Runner that the `linux/arm64` build job runs on                                                                                                               |
+| `platforms`             | No       | `linux/amd64,linux/arm64` | Comma-separated target platforms, each built as its own job on the runner mapped to it                                                                        |
+| `rebuild_packages`      | No       | `''`                      | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                    |
+| `portainer_endpoint_id` | No       | `''`                      | Portainer environment id the stack runs on, read by the deployed revision check                                                                               |
+| `portainer_stack`       | No       | `''`                      | Portainer stack name, matched against the containers' `com.docker.compose.project` label                                                                      |
 
 **Secrets:**
 
@@ -73,6 +75,8 @@ jobs:
 | `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                                              |
 | `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                                          |
 | `PORTAINER_WEBHOOK_URL`         | No       | Portainer webhook to trigger redeploy; the redeploy step is skipped when it is not set |
+| `PORTAINER_URL`                 | No       | Portainer base URL; the deployed revision check is skipped when it is not set          |
+| `PORTAINER_API_KEY`             | No       | Portainer API key for the deployed revision check; the check is skipped when unset     |
 | `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for build notifications                                         |
 | `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                                |
 | `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                       |
@@ -83,7 +87,7 @@ jobs:
 1. **test**: Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
 2. **prepare**: Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
 3. **build-and-push**: One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first
-4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set. Tags: short SHA + `latest` on the default branch
+4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set. When `PORTAINER_URL`, `PORTAINER_API_KEY`, `portainer_endpoint_id` and `portainer_stack` are set as well, it reads the stack's running containers through the Portainer API every 8 seconds and fails unless all of them carry the pushed commit as `org.opencontainers.image.revision` within 128 seconds. Tags: short SHA + `latest` on the default branch
 5. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set). Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
 ---

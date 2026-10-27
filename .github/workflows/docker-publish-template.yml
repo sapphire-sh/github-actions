@@ -42,6 +42,14 @@ on:
         required: false
         type: string
         default: ''
+      portainer_endpoint_id:
+        required: false
+        type: string
+        default: ''
+      portainer_stack:
+        required: false
+        type: string
+        default: ''
     secrets:
       REGISTRY_HOST:
         required: true
@@ -50,6 +58,10 @@ on:
       TAILSCALE_OAUTH_CLIENT_SECRET:
         required: true
       PORTAINER_WEBHOOK_URL:
+        required: false
+      PORTAINER_URL:
+        required: false
+      PORTAINER_API_KEY:
         required: false
       SLACK_WEBHOOK_URL:
         required: true
@@ -319,6 +331,42 @@ jobs:
           if [ -n "$PORTAINER_WEBHOOK_URL" ]; then
             curl -X POST "$PORTAINER_WEBHOOK_URL"
           fi
+
+      # metadata-action labels the image with the commit it was built from, and every container
+      # started from that image carries the label, so the stack's containers report which commit
+      # they run once the redeploy has replaced them.
+      - name: Decide whether to verify the deployed revision
+        id: verify
+        env:
+          PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ inputs.portainer_endpoint_id }}
+          PORTAINER_STACK: ${{ inputs.portainer_stack }}
+        run: |
+          if [ -n "$PORTAINER_WEBHOOK_URL" ] && [ -n "$PORTAINER_URL" ] && [ -n "$PORTAINER_API_KEY" ] && [ -n "$PORTAINER_ENDPOINT_ID" ] && [ -n "$PORTAINER_STACK" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.verify.outputs.run == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: sapphire-sh/github-actions
+
+      - if: steps.verify.outputs.run == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 26
+
+      - name: Verify deployed revision
+        if: steps.verify.outputs.run == 'true'
+        env:
+          PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+          PORTAINER_API_KEY: ${{ secrets.PORTAINER_API_KEY }}
+          PORTAINER_ENDPOINT_ID: ${{ inputs.portainer_endpoint_id }}
+          PORTAINER_STACK: ${{ inputs.portainer_stack }}
+          REVISION: ${{ github.sha }}
+        run: node .github/scripts/deploy-revision-check.js
 
   notify:
     needs: [test, prepare, build-and-push, merge]
