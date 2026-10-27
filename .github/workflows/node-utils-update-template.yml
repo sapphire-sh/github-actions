@@ -7,16 +7,6 @@ on:
         required: false
         type: string
         default: ubuntu-latest
-      # Unused. Declared so that a caller still passing it keeps starting.
-      run_tests:
-        required: false
-        type: boolean
-        default: false
-      # Unused. Declared so that a caller still passing it keeps starting.
-      rebuild_packages:
-        required: false
-        type: string
-        default: ''
       assignee:
         required: false
         type: string

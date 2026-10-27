@@ -245,12 +245,10 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                                                               |
-| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `runner`           | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                                                           |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
+| Name       | Required | Default         | Description                                                                                                                               |
+| ---------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`   | No       | `ubuntu-latest` | Runner that the fix job runs on                                                                                                           |
+| `assignee` | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
@@ -344,12 +342,10 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                                                               |
-| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
+| Name       | Required | Default         | Description                                                                                                                               |
+| ---------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`   | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
+| `assignee` | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
@@ -400,12 +396,10 @@ jobs:
 
 **Inputs:**
 
-| Name               | Required | Default         | Description                                                                                                                               |
-| ------------------ | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `run_tests`        | No       | `false`         | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `runner`           | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
-| `rebuild_packages` | No       | `''`            | Unused; accepted so that callers still passing it keep starting                                                                           |
-| `assignee`         | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
+| Name       | Required | Default         | Description                                                                                                                               |
+| ---------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`   | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
+| `assignee` | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
 
 **Secrets:**
 
