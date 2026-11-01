@@ -317,7 +317,7 @@ jobs:
 
 ---
 
-### Shared Utils Update ([`.github/workflows/node-utils-update-template.yml`](.github/workflows/node-utils-update-template.yml))
+### Shared Sapphire Package Update ([`.github/workflows/node-sapphire-package-update-template.yml`](.github/workflows/node-sapphire-package-update-template.yml))
 
 A reusable workflow that updates the `package_name` package (`@sapphire-sh/utils` by default) in tracked root and nested manifests and opens or updates a pull request.
 
@@ -331,7 +331,7 @@ on:
 
 jobs:
   update:
-    uses: sapphire-sh/github-actions/.github/workflows/node-utils-update-template.yml@main
+    uses: sapphire-sh/github-actions/.github/workflows/node-sapphire-package-update-template.yml@main
     permissions:
       contents: write
       issues: write
@@ -367,6 +367,7 @@ jobs:
 - The schedule belongs to the caller. The example checks daily; other dependencies can use a weekly Dependabot schedule.
 - The project's `build`, `lint`, `prettier` and `test` scripts run on the pull request through its `pull_request` workflows, such as the Shared Node Verify workflow, so a failing check shows on the pull request's status checks rather than stopping it from opening.
 - The project's `lint:fix` and `prettier:fix` scripts, whichever the root package.json defines, run before the pull request step and their changes go into the same commit; a fix script that exits non-zero keeps what it fixed and the pull request still opens.
+- The `.github/workflows/node-utils-update-template.yml` workflow takes the same inputs and secret and calls this workflow for callers that still use that path.
 
 ---
 

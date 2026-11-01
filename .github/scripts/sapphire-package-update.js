@@ -120,7 +120,10 @@ const runRootBootstrap = (directory, executeNpm) => {
 	}
 };
 
-export const updateUtils = (directory, { packageName = BOOTSTRAP_PACKAGE_NAME, runNpm: executeNpm = runNpm } = {}) => {
+export const updateSapphirePackage = (
+	directory,
+	{ packageName = BOOTSTRAP_PACKAGE_NAME, runNpm: executeNpm = runNpm } = {},
+) => {
 	const manifests = readConsumerManifests(directory, packageName);
 	if (manifests.length === 0) return { changed: false, versions: [] };
 
@@ -147,6 +150,6 @@ export const updateUtils = (directory, { packageName = BOOTSTRAP_PACKAGE_NAME, r
 };
 
 if (import.meta.main) {
-	const result = updateUtils(process.cwd(), { packageName: process.env.PACKAGE_NAME });
+	const result = updateSapphirePackage(process.cwd(), { packageName: process.env.PACKAGE_NAME });
 	process.stdout.write(`changed=${result.changed}\nversion=${result.versions.join(', ')}\n`);
 }

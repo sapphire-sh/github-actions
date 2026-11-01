@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
 import { afterEach, beforeEach, describe, it } from 'node:test';
 
-import { updateUtils } from './utils-update.js';
+import { updateSapphirePackage } from './sapphire-package-update.js';
 
 const PACKAGE_NAME = '@sapphire-sh/utils';
 const UI_PACKAGE_NAME = '@sapphire-sh/ui';
@@ -38,7 +38,7 @@ const recordNpm = () => {
 };
 
 beforeEach(() => {
-	directory = mkdtempSync(join(tmpdir(), 'utils-update-'));
+	directory = mkdtempSync(join(tmpdir(), 'sapphire-package-update-'));
 	execFileSync('git', ['init', '--quiet', directory]);
 });
 
@@ -46,7 +46,7 @@ afterEach(() => {
 	rmSync(directory, { recursive: true, force: true });
 });
 
-describe('updateUtils', () => {
+describe('updateSapphirePackage', () => {
 	it('updates dependency values while preserving the rest of each manifest', () => {
 		const manifest =
 			'{\r\n\t"name": "example",\r\n\t"description": "braces { } and escaped \\"quotes\\"",\r\n\t"dependencies": { "@sapphire-sh/utils": "~2.0.0", "other": "1.0.0" },\r\n\t"devDependencies": { "@sapphire-sh/utils": "^2.0.0" },\r\n\t"metadata": { "@sapphire-sh/utils": "2.0.0" }\r\n}\r\n';
@@ -55,7 +55,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.equal(
 			readFileSync(join(directory, 'package.json'), 'utf8'),
 			manifest.replace('~2.0.0', '~3.0.0').replace('^2.0.0', '^3.0.0'),
@@ -74,7 +74,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.equal(readFileSync(join(directory, 'package.json'), 'utf8'), manifest.replace('^2.0.0', '^3.0.0'));
 	});
 
@@ -86,7 +86,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['apps/web', ['install', '--ignore-scripts']],
@@ -113,7 +113,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
@@ -137,7 +137,7 @@ describe('updateUtils', () => {
 			return '';
 		};
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['tools', ['install', '--ignore-scripts']],
@@ -151,7 +151,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['tools', ['install', '--ignore-scripts']],
@@ -172,7 +172,7 @@ describe('updateUtils', () => {
 			return output;
 		};
 
-		assert.deepEqual(updateUtils(directory, { runNpm: addDevDependencyOnBootstrap }), {
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm: addDevDependencyOnBootstrap }), {
 			changed: true,
 			versions: ['3.0.0'],
 		});
@@ -190,7 +190,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(calls, [
 			['.', ['view', PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
@@ -203,7 +203,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: false, versions: [] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: false, versions: [] });
 		assert.deepEqual(calls, [['.', ['view', PACKAGE_NAME, 'version']]]);
 	});
 
@@ -220,7 +220,7 @@ describe('updateUtils', () => {
 			return output;
 		};
 
-		assert.deepEqual(updateUtils(directory, { runNpm: installNewerVersion }), {
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm: installNewerVersion }), {
 			changed: true,
 			versions: ['3.1.0'],
 		});
@@ -242,14 +242,14 @@ describe('updateUtils', () => {
 			return '';
 		};
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.9.0', '3.10.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.9.0', '3.10.0'] });
 	});
 
 	it('prints workflow outputs from a standalone copy of the helper', () => {
 		writeJson('package.json', { name: 'example' });
 		trackFiles();
 		const helperPath = join(directory, 'helper.mjs');
-		copyFileSync(new URL('./utils-update.js', import.meta.url), helperPath);
+		copyFileSync(new URL('./sapphire-package-update.js', import.meta.url), helperPath);
 
 		assert.equal(
 			execFileSync(process.execPath, [helperPath], { cwd: directory, encoding: 'utf8' }),
@@ -267,7 +267,7 @@ describe('updateUtils', () => {
 		writeFile('untracked/package.json', untrackedManifest);
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: true, versions: ['3.0.0'] });
 		assert.deepEqual(JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')), rootManifest);
 		assert.equal(readFileSync(join(directory, 'untracked/package.json'), 'utf8'), untrackedManifest);
 		assert.deepEqual(calls, [
@@ -281,7 +281,7 @@ describe('updateUtils', () => {
 		trackFiles();
 		const { calls, runNpm } = recordNpm();
 
-		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: false, versions: [] });
+		assert.deepEqual(updateSapphirePackage(directory, { runNpm }), { changed: false, versions: [] });
 		assert.deepEqual(calls, []);
 	});
 
@@ -299,7 +299,7 @@ describe('updateUtils', () => {
 			return '';
 		};
 
-		assert.deepEqual(updateUtils(directory, { packageName: UI_PACKAGE_NAME, runNpm }), {
+		assert.deepEqual(updateSapphirePackage(directory, { packageName: UI_PACKAGE_NAME, runNpm }), {
 			changed: true,
 			versions: ['3.0.0'],
 		});
@@ -335,8 +335,8 @@ describe('updateUtils', () => {
 			return '';
 		};
 
-		updateUtils(directory, { packageName: UI_PACKAGE_NAME, runNpm });
-		updateUtils(directory, { packageName: PACKAGE_NAME, runNpm });
+		updateSapphirePackage(directory, { packageName: UI_PACKAGE_NAME, runNpm });
+		updateSapphirePackage(directory, { packageName: PACKAGE_NAME, runNpm });
 		assert.deepEqual(calls, [
 			['.', ['view', UI_PACKAGE_NAME, 'version']],
 			['.', ['install', '--ignore-scripts']],
