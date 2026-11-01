@@ -11,6 +11,14 @@ on:
         required: false
         type: string
         default: ''
+      package_name:
+        required: false
+        type: string
+        default: '@sapphire-sh/utils'
+      branch_name:
+        required: false
+        type: string
+        default: chore/sapphire-utils
     secrets:
       PULL_REQUEST_TOKEN:
         required: true
@@ -18,7 +26,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: node-utils-update-${{ github.workflow }}-${{ github.ref }}
+  group: node-utils-update-${{ github.workflow }}-${{ inputs.package_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -49,6 +57,8 @@ jobs:
 
       - name: Update utils
         id: update
+        env:
+          PACKAGE_NAME: ${{ inputs.package_name }}
         run: node "$RUNNER_TEMP/utils-update.mjs" >> "$GITHUB_OUTPUT"
 
       # continue-on-error keeps a fix script that exits non-zero from stopping the pull request step,
@@ -76,12 +86,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           VERSION: ${{ steps.update.outputs.version }}
-          BRANCH: chore/sapphire-utils
+          BRANCH: ${{ inputs.branch_name }}
+          PACKAGE_NAME: ${{ inputs.package_name }}
           ASSIGNEE: ${{ inputs.assignee }}
           OWNER: ${{ github.repository_owner }}
         run: |
           echo '.github-actions-shared/' >> .git/info/exclude
-          title="chore(deps): bump @sapphire-sh/utils to $VERSION"
+          title="chore(deps): bump $PACKAGE_NAME to $VERSION"
           body="$(node .github-actions-shared/.github/scripts/change-summary.js)"
           owner_type="$(gh api "users/$OWNER" --jq .type)"
           git config user.name "github-actions[bot]"

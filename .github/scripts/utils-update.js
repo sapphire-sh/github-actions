@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, posix, relative, sep } from 'node:path';
 
-const PACKAGE_NAME = '@sapphire-sh/utils';
+const BOOTSTRAP_PACKAGE_NAME = '@sapphire-sh/utils';
 const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies'];
 
 const runNpm = (directory, argumentsList) => {
@@ -15,7 +15,7 @@ const runNpm = (directory, argumentsList) => {
 	return output;
 };
 
-const replaceRanges = (text, version) => {
+const replaceRanges = (text, version, packageName) => {
 	const tokens = Array.from(text.matchAll(/"(?:\\.|[^"\\])*"|[[\]{}:,]|[\w.+-]+/g));
 	const replacements = [];
 	let cursor = 0;
@@ -36,7 +36,7 @@ const replaceRanges = (text, version) => {
 				if (tokens[cursor][0] === ',') cursor += 1;
 			}
 			cursor += 1;
-		} else if (path.length === 2 && DEPENDENCY_FIELDS.includes(path[0]) && path[1] === PACKAGE_NAME) {
+		} else if (path.length === 2 && DEPENDENCY_FIELDS.includes(path[0]) && path[1] === packageName) {
 			const range = JSON.parse(token[0]);
 			const prefix = /^\D*/.exec(range)[0];
 			replacements.push({ start: token.index, end: token.index + token[0].length, value: `${prefix}${version}` });
@@ -63,20 +63,20 @@ const findInstallationDirectory = (directory, manifestDirectory) => {
 	}
 };
 
-const readInstalledVersion = (directory, installationDirectory, manifestDirectory) => {
+const readInstalledVersion = (directory, installationDirectory, manifestDirectory, packageName) => {
 	const lockfile = JSON.parse(readFileSync(join(directory, installationDirectory, 'package-lock.json'), 'utf8'));
 	let packagePath = relative(installationDirectory, manifestDirectory).split(sep).join('/');
 	while (true) {
-		const key = posix.join(packagePath, 'node_modules', PACKAGE_NAME);
+		const key = posix.join(packagePath, 'node_modules', packageName);
 		if (Object.hasOwn(lockfile.packages, key)) return lockfile.packages[key].version;
 		if (packagePath === '' || packagePath === '.') {
-			throw new Error(`Installed ${PACKAGE_NAME} version is missing from ${installationDirectory}/package-lock.json`);
+			throw new Error(`Installed ${packageName} version is missing from ${installationDirectory}/package-lock.json`);
 		}
 		packagePath = posix.dirname(packagePath);
 	}
 };
 
-const readConsumerManifests = (directory) => {
+const readConsumerManifests = (directory, packageName) => {
 	const paths = execFileSync('git', ['ls-files', '-z'], { cwd: directory, encoding: 'utf8' })
 		.split('\0')
 		.filter((path) => basename(path) === 'package.json')
@@ -86,14 +86,14 @@ const readConsumerManifests = (directory) => {
 			const text = readFileSync(join(directory, path), 'utf8');
 			const manifest = JSON.parse(text);
 			const ranges = DEPENDENCY_FIELDS.flatMap((field) =>
-				Object.hasOwn(manifest[field] ?? {}, PACKAGE_NAME) ? [manifest[field][PACKAGE_NAME]] : [],
+				Object.hasOwn(manifest[field] ?? {}, packageName) ? [manifest[field][packageName]] : [],
 			);
 			return { path, text, manifest, ranges };
 		})
 		.filter(({ ranges }) => ranges.length > 0);
 };
 
-const writeUpdatedManifests = (directory, changed, latest) => {
+const writeUpdatedManifests = (directory, changed, latest, packageName) => {
 	const installations = new Map();
 	for (const [index, manifest] of changed.entries()) {
 		process.stderr.write(`Updating ${index + 1}/${changed.length}: ${manifest.path}\n`);
@@ -101,7 +101,7 @@ const writeUpdatedManifests = (directory, changed, latest) => {
 		const installationDirectory = findInstallationDirectory(directory, manifestDirectory);
 		manifest.manifestDirectory = manifestDirectory;
 		manifest.installationDirectory = installationDirectory;
-		manifest.updatedText = replaceRanges(manifest.text, latest);
+		manifest.updatedText = replaceRanges(manifest.text, latest, packageName);
 		writeFileSync(join(directory, manifest.path), manifest.updatedText);
 		if (!installations.has(installationDirectory)) installations.set(installationDirectory, []);
 		installations.get(installationDirectory).push(manifest);
@@ -120,24 +120,24 @@ const runRootBootstrap = (directory, executeNpm) => {
 	}
 };
 
-export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => {
-	const manifests = readConsumerManifests(directory);
+export const updateUtils = (directory, { packageName = BOOTSTRAP_PACKAGE_NAME, runNpm: executeNpm = runNpm } = {}) => {
+	const manifests = readConsumerManifests(directory, packageName);
 	if (manifests.length === 0) return { changed: false, versions: [] };
 
-	const latest = executeNpm(directory, ['view', PACKAGE_NAME, 'version']).trim();
+	const latest = executeNpm(directory, ['view', packageName, 'version']).trim();
 	const changed = manifests.filter(({ ranges }) => ranges.some((range) => range.replace(/^\D*/, '') !== latest));
 	if (changed.length === 0) return { changed: false, versions: [] };
 
-	const installations = writeUpdatedManifests(directory, changed, latest);
+	const installations = writeUpdatedManifests(directory, changed, latest, packageName);
 	for (const [installationDirectory, consumers] of installations) {
 		executeNpm(join(directory, installationDirectory), ['install', '--ignore-scripts']);
 		for (const consumer of consumers) writeFileSync(join(directory, consumer.path), consumer.updatedText);
 	}
-	if (installations.has('.')) runRootBootstrap(directory, executeNpm);
+	if (packageName === BOOTSTRAP_PACKAGE_NAME && installations.has('.')) runRootBootstrap(directory, executeNpm);
 
 	const versions = new Set(
 		changed.map(({ installationDirectory, manifestDirectory }) =>
-			readInstalledVersion(directory, installationDirectory, manifestDirectory),
+			readInstalledVersion(directory, installationDirectory, manifestDirectory, packageName),
 		),
 	);
 	return {
@@ -147,6 +147,6 @@ export const updateUtils = (directory, { runNpm: executeNpm = runNpm } = {}) => 
 };
 
 if (import.meta.main) {
-	const result = updateUtils(process.cwd());
+	const result = updateUtils(process.cwd(), { packageName: process.env.PACKAGE_NAME });
 	process.stdout.write(`changed=${result.changed}\nversion=${result.versions.join(', ')}\n`);
 }

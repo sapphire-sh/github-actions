@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, it } from 'node:test';
 import { updateUtils } from './utils-update.js';
 
 const PACKAGE_NAME = '@sapphire-sh/utils';
+const UI_PACKAGE_NAME = '@sapphire-sh/ui';
 let directory;
 
 const writeFile = (path, text) => {
@@ -282,5 +283,66 @@ describe('updateUtils', () => {
 
 		assert.deepEqual(updateUtils(directory, { runNpm }), { changed: false, versions: [] });
 		assert.deepEqual(calls, []);
+	});
+
+	it('updates the manifests that use the package given as packageName', () => {
+		writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^2.0.0' } });
+		writeJson('package-lock.json', { packages: { '': {} } });
+		writeJson('web/package.json', { dependencies: { [UI_PACKAGE_NAME]: '^1.0.0', [PACKAGE_NAME]: '^2.0.0' } });
+		writeJson('web/package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const calls = [];
+		const runNpm = (workingDirectory, argumentsList) => {
+			calls.push([relative(directory, workingDirectory) || '.', argumentsList]);
+			if (argumentsList[0] === 'view') return '3.0.0\n';
+			writeJson('web/package-lock.json', { packages: { [`node_modules/${UI_PACKAGE_NAME}`]: { version: '3.0.0' } } });
+			return '';
+		};
+
+		assert.deepEqual(updateUtils(directory, { packageName: UI_PACKAGE_NAME, runNpm }), {
+			changed: true,
+			versions: ['3.0.0'],
+		});
+		assert.deepEqual(JSON.parse(readFileSync(join(directory, 'package.json'), 'utf8')), {
+			devDependencies: { [PACKAGE_NAME]: '^2.0.0' },
+		});
+		assert.deepEqual(JSON.parse(readFileSync(join(directory, 'web/package.json'), 'utf8')), {
+			dependencies: { [UI_PACKAGE_NAME]: '^3.0.0', [PACKAGE_NAME]: '^2.0.0' },
+		});
+		assert.deepEqual(calls, [
+			['.', ['view', UI_PACKAGE_NAME, 'version']],
+			['web', ['install', '--ignore-scripts']],
+		]);
+	});
+
+	it('runs the root bootstrap only when packageName is @sapphire-sh/utils', () => {
+		const scripts = { bootstrap: 'bootstrap' };
+		writeJson('package.json', { devDependencies: { [PACKAGE_NAME]: '^2.0.0', [UI_PACKAGE_NAME]: '^2.0.0' }, scripts });
+		writeJson('package-lock.json', { packages: { '': {} } });
+		trackFiles();
+		const calls = [];
+		const runNpm = (workingDirectory, argumentsList) => {
+			calls.push([relative(directory, workingDirectory) || '.', argumentsList]);
+			if (argumentsList[0] === 'view') return '3.0.0\n';
+			if (argumentsList[0] === 'install') {
+				writeJson('package-lock.json', {
+					packages: {
+						[`node_modules/${PACKAGE_NAME}`]: { version: '3.0.0' },
+						[`node_modules/${UI_PACKAGE_NAME}`]: { version: '3.0.0' },
+					},
+				});
+			}
+			return '';
+		};
+
+		updateUtils(directory, { packageName: UI_PACKAGE_NAME, runNpm });
+		updateUtils(directory, { packageName: PACKAGE_NAME, runNpm });
+		assert.deepEqual(calls, [
+			['.', ['view', UI_PACKAGE_NAME, 'version']],
+			['.', ['install', '--ignore-scripts']],
+			['.', ['view', PACKAGE_NAME, 'version']],
+			['.', ['install', '--ignore-scripts']],
+			['.', ['run', 'bootstrap']],
+		]);
 	});
 });

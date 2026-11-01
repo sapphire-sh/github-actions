@@ -319,7 +319,7 @@ jobs:
 
 ### Shared Utils Update ([`.github/workflows/node-utils-update-template.yml`](.github/workflows/node-utils-update-template.yml))
 
-A reusable workflow that updates `@sapphire-sh/utils` in tracked root and nested manifests and opens or updates a pull request.
+A reusable workflow that updates the `package_name` package (`@sapphire-sh/utils` by default) in tracked root and nested manifests and opens or updates a pull request.
 
 **Usage:**
 
@@ -342,10 +342,12 @@ jobs:
 
 **Inputs:**
 
-| Name       | Required | Default         | Description                                                                                                                               |
-| ---------- | -------- | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `runner`   | No       | `ubuntu-latest` | Runner that the update job runs on                                                                                                        |
-| `assignee` | No       | `''`            | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
+| Name           | Required | Default                | Description                                                                                                                               |
+| -------------- | -------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`       | No       | `ubuntu-latest`        | Runner that the update job runs on                                                                                                        |
+| `assignee`     | No       | `''`                   | Space-separated user names assigned to the pull request; the repository owner is assigned when empty, unless the owner is an organization |
+| `package_name` | No       | `@sapphire-sh/utils`   | Package whose version values are updated; the root bootstrap runs only when it is `@sapphire-sh/utils`                                    |
+| `branch_name`  | No       | `chore/sapphire-utils` | Branch the update is force-pushed to and the pull request is opened from                                                                  |
 
 **Secrets:**
 
@@ -355,11 +357,11 @@ jobs:
 
 **Jobs:**
 
-1. **update**: Runs on Node.js 26, finds tracked manifests that declare `@sapphire-sh/utils`, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses `chore/sapphire-utils`, names the installed utils versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty and the owner is a user. After the update, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **update**: Runs on Node.js 26, finds tracked manifests that declare the `package_name` package, and compares their version values with the npm registry's latest version. It updates the dependency values while preserving their prefixes and the surrounding manifest text and runs `npm install --ignore-scripts` once per affected installation directory. When `package_name` is `@sapphire-sh/utils`, the repository root is one of the installation directories and its package.json defines a bootstrap script, npm run bootstrap runs there, so the pull request also carries the shared configuration of the new version. Workspace consumers share their root lockfile's installation. The resulting pull request uses the `branch_name` branch, names the package and its installed versions in its title, includes the existing change summary and diff, and assigns the `assignee` users, or the repository owner when that input is empty and the owner is a user. After the update, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
 
 **Notes:**
 
-- Every update rebuilds the `chore/sapphire-utils` branch from the checked-out commit, replacing changes previously pushed to that branch.
+- Every update rebuilds the `branch_name` branch from the checked-out commit, replacing changes previously pushed to that branch.
 - The calling job passes `contents: write`, `issues: write`, `pull-requests: write` and `PULL_REQUEST_TOKEN` as shown above.
 - `PULL_REQUEST_TOKEN` must be able to push workflow files, since the pull request includes the changes bootstrap makes under `.github/workflows`.
 - The schedule belongs to the caller. The example checks daily; other dependencies can use a weekly Dependabot schedule.
