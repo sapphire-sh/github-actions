@@ -250,6 +250,15 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      # The builder keeps its state between runs on a self-hosted host, so each run brings its
+      # cache back down to the limit. On github-hosted runners the builder goes away with the
+      # runner.
+      - name: Prune builder cache
+        if: runner.environment != 'github-hosted'
+        env:
+          BUILDER: ${{ steps.buildx.outputs.name }}
+        run: docker buildx prune --builder "$BUILDER" --max-used-space 16GiB --force
+
   merge:
     needs: [prepare, build-and-push]
     if: inputs.build_image && needs.prepare.outputs.push == 'true' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled')
