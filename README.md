@@ -222,7 +222,7 @@ jobs:
 
 **Jobs:**
 
-1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed package versions and dependency ranges (`Package`, `From`, `To`, `Required by`), a range row naming the manifest that declares it under `Required by`, as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order.
+1. **fix**: Runs `npm ci --ignore-scripts` and `npm audit fix --ignore-scripts --audit-level=none` on Node.js 26 and, when the fix changed anything, force-pushes the result to the `chore/npm-audit-fix` branch with a table of the changed package versions and dependency ranges (`Package`, `From`, `To`, `Required by`), a range row naming the manifest that declares it under `Required by`, as the pull request body: it opens a pull request when none is open for that branch, and replaces the open one's body otherwise, assigning the `assignee` users, or the repository owner when that input is empty and the owner is a user, to the pull request in both cases. After the fix, it runs whichever of the `lint:fix` and `prettier:fix` scripts the root package.json defines, in that order. It runs npm audit before and after the fix and, when the fix raised the vulnerability total, opens no pull request and leaves a warning annotation naming both totals instead.
 
 **Notes:**
 
@@ -233,6 +233,7 @@ jobs:
 - Pull requests opened or updated with `PULL_REQUEST_TOKEN` start their `pull_request` workflow runs without waiting for approval
 - The project's `build`, `lint`, `prettier` and `test` scripts run on the pull request through its `pull_request` workflows, such as the Shared Node Verify workflow, so a failing check shows on the pull request's status checks rather than stopping it from opening
 - The project's `lint:fix` and `prettier:fix` scripts, whichever the root package.json defines, run before the pull request step and their changes go into the same commit; a fix script that exits non-zero keeps what it fixed and the pull request still opens
+- A run whose fix raised the vulnerability total opens no pull request and ends with a warning annotation naming the totals before and after the fix
 
 ---
 

@@ -41,11 +41,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      # The totals these reports carry are compared after the fix, and a run whose fix raised the
+      # total opens no pull request. audit-level none keeps npm audit from exiting non-zero while
+      # vulnerabilities remain.
+      - name: Audit before the fix
+        run: npm audit --json --audit-level=none > "$RUNNER_TEMP/audit-before.json"
+
       # Without --force the fixes stay inside the declared dependency ranges. npm audit fix exits
       # non-zero while a vulnerability it could not fix remains, and audit-level none raises that
       # threshold above every severity so those leftovers do not fail the job.
       - name: Apply audit fixes
         run: npm audit fix --ignore-scripts --audit-level=none
+
+      - name: Audit after the fix
+        run: npm audit --json --audit-level=none > "$RUNNER_TEMP/audit-after.json"
 
       # A run whose update changed nothing skips the fix scripts, so that no pull request opens with
       # formatting fixes alone. continue-on-error keeps a fix script that exits non-zero from stopping
@@ -71,7 +80,19 @@ jobs:
           repository: sapphire-sh/github-actions
           path: .github-actions-shared
 
+      - name: Compare vulnerability totals
+        id: compare
+        run: node .github-actions-shared/.github/scripts/audit-vulnerability-total.js "$RUNNER_TEMP/audit-before.json" "$RUNNER_TEMP/audit-after.json" >> "$GITHUB_OUTPUT"
+
+      - name: Warn about the vulnerability total increase
+        if: steps.compare.outputs.increased == 'true'
+        env:
+          BEFORE: ${{ steps.compare.outputs.before }}
+          AFTER: ${{ steps.compare.outputs.after }}
+        run: echo "::warning::npm audit fix raised the vulnerability total from $BEFORE to $AFTER, so no pull request is opened"
+
       - name: Create or update pull request
+        if: steps.compare.outputs.increased != 'true'
         env:
           GH_TOKEN: ${{ secrets.PULL_REQUEST_TOKEN }}
           BRANCH: chore/npm-audit-fix
