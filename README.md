@@ -281,6 +281,42 @@ jobs:
 
 ---
 
+### Shared Pull Request Rebase ([`.github/workflows/pull-request-rebase-template.yml`](.github/workflows/pull-request-rebase-template.yml))
+
+A reusable workflow that reruns the update workflow behind a dependency update pull request when someone with write access comments `/rebase` on it.
+
+**Usage:**
+
+```yaml
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  rebase:
+    uses: sapphire-sh/github-actions/.github/workflows/pull-request-rebase-template.yml@main
+    permissions:
+      actions: write
+      pull-requests: write
+```
+
+**Inputs:**
+
+| Name     | Required | Default         | Description                        |
+| -------- | -------- | --------------- | ---------------------------------- |
+| `runner` | No       | `ubuntu-latest` | Runner that the rebase job runs on |
+
+**Jobs:**
+
+1. **rebase**: Runs only for pull request comments. When the comment body is `/rebase` and its author is the repository owner, a member or a collaborator, it reads the pull request's head branch and dispatches the caller workflow paired with that branch on the default branch: `node-utils-update.yml` for `chore/sapphire-utils`, `node-ui-update.yml` for `chore/sapphire-ui`, `node-shared-config-update.yml` for `chore/shared-config-update` and `node-audit-fix.yml` for `chore/npm-audit-fix`. It then adds a `+1` reaction to the comment.
+
+**Notes:**
+
+- The dispatched workflow rebuilds the pull request branch from the default branch and force-pushes it, so the pull request picks up the default branch's latest commit.
+
+---
+
 ### Shared Sapphire Package Update ([`.github/workflows/node-sapphire-package-update-template.yml`](.github/workflows/node-sapphire-package-update-template.yml))
 
 A reusable workflow that updates the `package_name` package (`@sapphire-sh/utils` by default) in tracked root and nested manifests and opens or updates a pull request.

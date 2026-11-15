@@ -1,0 +1,53 @@
+name: Shared Pull Request Rebase
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        required: false
+        type: string
+        default: ubuntu-latest
+
+permissions: {}
+
+jobs:
+  rebase:
+    if: github.event.issue.pull_request
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: sapphire-sh/github-actions
+          path: .github-actions-shared
+
+      - name: Read the pull request branch
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: echo "branch=$(gh api "repos/$REPOSITORY/pulls/$NUMBER" --jq .head.ref)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the update workflow
+        id: resolve
+        env:
+          BODY: ${{ github.event.comment.body }}
+          AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+        run: node .github-actions-shared/.github/scripts/pull-request-rebase.js >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch the update workflow
+        if: steps.resolve.outputs.workflow != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          WORKFLOW: ${{ steps.resolve.outputs.workflow }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          COMMENT_ID: ${{ github.event.comment.id }}
+        run: |
+          gh workflow run "$WORKFLOW" --repo "$REPOSITORY" --ref "$DEFAULT_BRANCH"
+          gh api -X POST "repos/$REPOSITORY/issues/comments/$COMMENT_ID/reactions" -f content=+1
