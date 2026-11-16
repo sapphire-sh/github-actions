@@ -338,7 +338,7 @@ jobs:
           PORTAINER_WEBHOOK_URL: ${{ secrets.PORTAINER_WEBHOOK_URL }}
         run: |
           if [ -n "$PORTAINER_WEBHOOK_URL" ]; then
-            curl -X POST "$PORTAINER_WEBHOOK_URL"
+            curl --fail-with-body -X POST "$PORTAINER_WEBHOOK_URL"
           fi
 
       # metadata-action labels the image with the commit it was built from, and every container
