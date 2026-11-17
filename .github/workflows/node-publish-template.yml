@@ -99,7 +99,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      packages: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -168,16 +167,6 @@ jobs:
 
       - name: Publish to npm
         run: node "$RUNNER_TEMP/npm-publish.mjs"
-
-      - name: Publish to GitHub Packages
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 26
-          registry-url: https://npm.pkg.github.com
-
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create GitHub release
         run: gh release create --generate-notes "${RELEASE_TAG:-$(git describe --tags)}"
