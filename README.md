@@ -70,25 +70,24 @@ jobs:
 
 **Secrets:**
 
-| Name                            | Required | Description                                                                            |
-| ------------------------------- | -------- | -------------------------------------------------------------------------------------- |
-| `REGISTRY_HOST`                 | Yes      | Private registry hostname                                                              |
-| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                                              |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                                          |
-| `PORTAINER_WEBHOOK_URL`         | No       | Portainer webhook to trigger redeploy; the redeploy step is skipped when it is not set |
-| `PORTAINER_URL`                 | No       | Portainer base URL; the deployed revision check is skipped when it is not set          |
-| `PORTAINER_API_KEY`             | No       | Portainer API key for the deployed revision check; the check is skipped when unset     |
-| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for build notifications                                         |
-| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                                |
-| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                       |
-| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                       |
+| Name                            | Required | Description                                                                                                                                     |
+| ------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `REGISTRY_HOST`                 | Yes      | Private registry hostname                                                                                                                       |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | Yes      | Tailscale OAuth client ID                                                                                                                       |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | Yes      | Tailscale OAuth client secret                                                                                                                   |
+| `PORTAINER_WEBHOOK_URL`         | No       | Portainer webhook to trigger redeploy; the redeploy step is skipped when it is not set                                                          |
+| `VAULT_ADDR`                    | No       | Vault address the deployed revision check reads the Portainer URL and API key from through GitHub OIDC; the check is skipped when it is not set |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for build notifications                                                                                                  |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with                                                                                         |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                                                                                                |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                                                                                |
 
 **Jobs:**
 
 1. **test**: Runs `npm ci --ignore-scripts` and `npm test` on Node.js 26 (skipped if `run_tests` is `false`). When `rebuild_packages` is not empty, `npm rebuild` runs on those packages between the install and `npm test`
 2. **prepare**: Expands the `platforms` input into the build matrix, pairing each platform with the runner mapped to it, and decides whether the build pushes: never on `pull_request` events, otherwise as `push_image` says
 3. **build-and-push**: One job per platform: builds the Docker image with Buildx and pushes it by digest. On github-hosted runners it also configures the insecure registry and connects to Tailscale first. On self-hosted runners it ends by pruning the builder's cache down to 16GiB
-4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set, failing when the webhook answers with an HTTP status of 400 or above. When `PORTAINER_URL`, `PORTAINER_API_KEY`, `portainer_endpoint_id` and `portainer_stack` are set as well, it reads the stack's running containers through the Portainer API every 8 seconds and fails unless all of them carry the pushed commit as `org.opencontainers.image.revision` within 128 seconds. Tags: short SHA + `latest` on the default branch
+4. **merge**: Combines the digests into a manifest list and pushes it, then triggers the Portainer redeploy when `PORTAINER_WEBHOOK_URL` is set, failing when the webhook answers with an HTTP status of 400 or above. When `VAULT_ADDR`, `portainer_endpoint_id` and `portainer_stack` are set as well, it reads the Portainer URL and API key from Vault through GitHub OIDC, then reads the stack's running containers through the Portainer API every 8 seconds and fails unless all of them carry the pushed commit as `org.opencontainers.image.revision` within 128 seconds. Requests an OIDC token, so the calling job has to pass id-token: write: list it when the job sets permissions. Tags: short SHA + `latest` on the default branch
 5. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set). Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
 ---
