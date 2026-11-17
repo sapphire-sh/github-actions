@@ -13,8 +13,9 @@
 		"test": "node --test \".github/scripts/*.test.js\""
 	},
 	"devDependencies": {
-		"@sapphire-sh/utils": "^3.53.0",
+		"@sapphire-sh/utils": "^3.55.0",
 		"prettier": "^3.10.1",
-		"prettier-plugin-organize-imports": "^4.3.0"
+		"prettier-plugin-organize-imports": "^4.3.0",
+		"yaml": "^2.9.1"
 	}
 }
