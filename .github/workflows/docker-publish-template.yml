@@ -235,6 +235,15 @@ jobs:
           cache-from: ${{ runner.environment == 'github-hosted' && 'type=gha' || '' }}
           cache-to: ${{ runner.environment == 'github-hosted' && 'type=gha,mode=max' || '' }}
 
+      # A failed build can leave a broken layer in the persistent builder's cache, and the next
+      # run, a rerun of the same commit included, takes that layer as a cache hit. Pruning the
+      # builder's cache once the build step fails makes the next run build its layers again.
+      - name: Prune builder cache after a failed build
+        if: failure() && steps.build.conclusion == 'failure' && runner.environment != 'github-hosted'
+        env:
+          BUILDER: ${{ steps.buildx.outputs.name }}
+        run: docker buildx prune --builder "$BUILDER" --force
+
       - name: Export digest
         if: needs.prepare.outputs.push == 'true'
         env:
