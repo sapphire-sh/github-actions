@@ -282,6 +282,53 @@ jobs:
 
 ---
 
+### Shared Desktop Publish ([`.github/workflows/desktop-publish-template.yml`](.github/workflows/desktop-publish-template.yml))
+
+A reusable workflow that builds a Tauri desktop app and publishes it as assets of the fixed `desktop-latest` GitHub release, replacing the previous release and its tag on every run except on `pull_request` events.
+
+**Usage:**
+
+```yaml
+jobs:
+  publish:
+    uses: sapphire-sh/github-actions/.github/workflows/desktop-publish-template.yml@main
+    permissions:
+      actions: read
+      contents: write
+    with:
+      assets: src-tauri/target/release/bundle/dmg/*.dmg
+    secrets: inherit
+```
+
+**Inputs:**
+
+| Name                | Required | Default       | Description                                                                                                                                                                                                             |
+| ------------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets`            | Yes      | —             | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                                                                                                |
+| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the verify scripts and `npm run tauri build` run, and where the install runs when `install_directory` is empty                                                        |
+| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run and whose `package-lock.json` keys the setup-node cache; `working_directory` is used when empty (e.g. the root of an npm workspace) |
+| `runner`            | No       | `self-hosted` | Runner that all jobs run on                                                                                                                                                                                             |
+| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                                                                              |
+
+**Secrets:**
+
+| Name                            | Required | Description                                                      |
+| ------------------------------- | -------- | ---------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                 |
+| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
+| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
+| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |
+| `TAILSCALE_OAUTH_CLIENT_ID`     | No       | Tailscale OAuth client ID                                        |
+| `TAILSCALE_OAUTH_CLIENT_SECRET` | No       | Tailscale OAuth client secret                                    |
+
+**Jobs:**
+
+1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages`, `working_directory` and `install_directory`, which runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package in `working_directory` defines
+2. **publish**: Runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty, on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), runs `npm run tauri build` in `working_directory` with the Rust toolchain installed on the `runner` host, then deletes the `desktop-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
+3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `verify` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
+
+---
+
 ### Shared Pull Request Rebase ([`.github/workflows/pull-request-rebase-template.yml`](.github/workflows/pull-request-rebase-template.yml))
 
 A reusable workflow that reruns the update workflow behind a dependency update pull request when someone with write access comments `/rebase` on it.
