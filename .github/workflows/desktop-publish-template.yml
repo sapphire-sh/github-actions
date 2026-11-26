@@ -92,7 +92,19 @@ jobs:
           "$HOME/.cargo/bin/rustup" default stable
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
-      - run: npm run tauri build
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: sapphire-sh/github-actions
+          path: .github-actions
+
+      - name: Compute app version
+        id: version
+        env:
+          TAURI_CONFIG: ${{ inputs.working_directory }}/src-tauri/tauri.conf.json
+          RUN_NUMBER: ${{ github.run_number }}
+        run: node .github-actions/.github/scripts/desktop-build-version.js >> "$GITHUB_OUTPUT"
+
+      - run: npm run tauri build -- --config '{"version":"${{ steps.version.outputs.version }}"}'
         working-directory: ${{ inputs.working_directory }}
 
       - name: Recreate release
