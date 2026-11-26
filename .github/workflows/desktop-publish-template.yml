@@ -81,6 +81,17 @@ jobs:
           REBUILD_PACKAGES: ${{ inputs.rebuild_packages }}
         run: npm rebuild $REBUILD_PACKAGES
 
+      # rustup keeps the toolchain under the runner account's home between runs, so the
+      # install script runs only on a host where rustup is missing.
+      - name: Install Rust toolchain
+        run: |
+          if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+          fi
+          "$HOME/.cargo/bin/rustup" toolchain install stable --profile minimal
+          "$HOME/.cargo/bin/rustup" default stable
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
       - run: npm run tauri build
         working-directory: ${{ inputs.working_directory }}
 
