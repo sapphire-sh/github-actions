@@ -312,19 +312,22 @@ jobs:
 
 **Secrets:**
 
-| Name                            | Required | Description                                                      |
-| ------------------------------- | -------- | ---------------------------------------------------------------- |
-| `SLACK_WEBHOOK_URL`             | Yes      | Slack incoming webhook for publish notifications                 |
-| `MATTERMOST_TOKEN`              | No       | Mattermost access token the notification is posted with          |
-| `MATTERMOST_CHANNEL_ID`         | No       | Mattermost channel the notification is posted to                 |
-| `MATTERMOST_URL`                | No       | Mattermost server base URL, to which `/api/v4/posts` is appended |
-| `TAILSCALE_OAUTH_CLIENT_ID`     | No       | Tailscale OAuth client ID                                        |
-| `TAILSCALE_OAUTH_CLIENT_SECRET` | No       | Tailscale OAuth client secret                                    |
+| Name                                 | Required | Description                                                                                                    |
+| ------------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `SLACK_WEBHOOK_URL`                  | Yes      | Slack incoming webhook for publish notifications                                                               |
+| `MATTERMOST_TOKEN`                   | No       | Mattermost access token the notification is posted with                                                        |
+| `MATTERMOST_CHANNEL_ID`              | No       | Mattermost channel the notification is posted to                                                               |
+| `MATTERMOST_URL`                     | No       | Mattermost server base URL, to which `/api/v4/posts` is appended                                               |
+| `TAILSCALE_OAUTH_CLIENT_ID`          | No       | Tailscale OAuth client ID                                                                                      |
+| `TAILSCALE_OAUTH_CLIENT_SECRET`      | No       | Tailscale OAuth client secret                                                                                  |
+| `TAURI_SIGNING_PRIVATE_KEY`          | No       | Private key the Tauri build signs the updater bundle with, passed to `npm run tauri build` under the same name |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | No       | Password of `TAURI_SIGNING_PRIVATE_KEY`, passed to `npm run tauri build` under the same name                   |
+| `RELEASE_READ_TOKEN`                 | No       | Token the app reads the release with, passed to `npm run tauri build` under the same name                      |
 
 **Jobs:**
 
 1. **verify**: Calls the Shared Node Verify workflow on `runner` with `rebuild_packages`, `working_directory` and `install_directory`, which runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), then whichever of the `build`, `lint`, `prettier` and `test` scripts the package in `working_directory` defines
-2. **publish**: Runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty, on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), installs rustup into the runner account's home when it is missing and the stable toolchain with the minimal profile, then checks out sapphire-sh/github-actions into `.github-actions` and builds the app version from the major and minor of `version` in `src-tauri/tauri.conf.json` under `working_directory` with the run number as its patch, failing when that value is not major.minor.patch, then runs `npm run tauri build` in `working_directory` with that version passed through `--config`, then deletes the `desktop-latest` release and tag and recreates them at the current commit with `assets` attached. Skipped on `pull_request` events
+2. **publish**: Runs `npm ci --ignore-scripts` in `install_directory`, or in `working_directory` when `install_directory` is empty, on Node.js 26 (with `npm rebuild` on the `rebuild_packages` packages afterwards when that input is not empty), installs rustup into the runner account's home when it is missing and the stable toolchain with the minimal profile, then checks out sapphire-sh/github-actions into `.github-actions` and builds the app version from the major and minor of `version` in `src-tauri/tauri.conf.json` under `working_directory` with the run number as its patch, failing when that value is not major.minor.patch, then runs `npm run tauri build` in `working_directory` with that version passed through `--config` and `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` and `RELEASE_READ_TOKEN` in its environment, then deletes the `desktop-latest` release and tag and recreates them at the current commit with `assets` attached. When the build left a `.app.tar.gz` in `src-tauri/target/release/bundle/macos` under `working_directory`, it then uploads that archive to the release, reads the asset's API `url` from the release, and uploads a `latest.json` updater manifest whose `darwin-aarch64` entry carries that `url` and the content of the archive's `.sig` file. Skipped on `pull_request` events
 3. **notify**: Sends Slack/Mattermost notifications (each skipped if the secrets it needs are not set), naming the job `verify` on `pull_request` events and `publish` otherwise. Reads the run's start time through the REST API, so the calling job has to pass actions: read: list it when the job sets permissions, and set permissions when the repository's default workflow permissions are restricted
 
 ---

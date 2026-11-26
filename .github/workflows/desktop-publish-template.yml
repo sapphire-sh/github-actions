@@ -35,6 +35,12 @@ on:
         required: false
       TAILSCALE_OAUTH_CLIENT_SECRET:
         required: false
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
+      RELEASE_READ_TOKEN:
+        required: false
 
 permissions: {}
 
@@ -106,6 +112,10 @@ jobs:
 
       - run: npm run tauri build -- --config '{"version":"${{ steps.version.outputs.version }}"}'
         working-directory: ${{ inputs.working_directory }}
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          RELEASE_READ_TOKEN: ${{ secrets.RELEASE_READ_TOKEN }}
 
       - name: Recreate release
         env:
@@ -118,6 +128,23 @@ jobs:
             --title 'Desktop app (latest)' \
             --notes "Auto-published from ${{ github.sha }}." \
             $ASSETS
+
+      - name: Publish updater manifest
+        working-directory: ${{ inputs.working_directory }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APP_VERSION: ${{ steps.version.outputs.version }}
+          MANIFEST_SCRIPT: ${{ github.workspace }}/.github-actions/.github/scripts/desktop-updater-manifest.js
+        run: |
+          set -- src-tauri/target/release/bundle/macos/*.app.tar.gz
+          if [ ! -f "$1" ]; then
+            exit 0
+          fi
+          gh release upload desktop-latest "$1"
+          ASSET_NAME=$(basename "$1")
+          ASSET_URL=$(gh api "repos/${{ github.repository }}/releases/tags/desktop-latest" --jq ".assets[] | select(.name == \"$ASSET_NAME\") | .url")
+          ASSET_URL="$ASSET_URL" SIGNATURE_FILE="$1.sig" node "$MANIFEST_SCRIPT" > latest.json
+          gh release upload desktop-latest latest.json
 
   notify:
     needs: [verify, publish]
