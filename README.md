@@ -171,12 +171,12 @@ jobs:
 
 **Inputs:**
 
-| Name                | Required | Default       | Description                                                                                                                                                                                                             |
-| ------------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `runner`            | No       | `self-hosted` | Runner that the verify job runs on                                                                                                                                                                                      |
-| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                                                                              |
-| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the scripts run, and where the install runs when `install_directory` is empty                                                                                         |
-| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run and whose `package-lock.json` keys the setup-node cache; `working_directory` is used when empty (e.g. the root of an npm workspace) |
+| Name                | Required | Default       | Description                                                                                                                                                     |
+| ------------------- | -------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `runner`            | No       | `self-hosted` | Runner that the verify job runs on                                                                                                                              |
+| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                      |
+| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the scripts run, and where the install runs when `install_directory` is empty                                 |
+| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run; `working_directory` is used when empty (e.g. the root of an npm workspace) |
 
 **Secrets:** none.
 
@@ -302,13 +302,13 @@ jobs:
 
 **Inputs:**
 
-| Name                | Required | Default       | Description                                                                                                                                                                                                             |
-| ------------------- | -------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `assets`            | Yes      | —             | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                                                                                                |
-| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the verify scripts and `npm run tauri build` run, and where the install runs when `install_directory` is empty                                                        |
-| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run and whose `package-lock.json` keys the setup-node cache; `working_directory` is used when empty (e.g. the root of an npm workspace) |
-| `runner`            | No       | `self-hosted` | Runner that all jobs run on                                                                                                                                                                                             |
-| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                                                                              |
+| Name                | Required | Default       | Description                                                                                                                                                      |
+| ------------------- | -------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `assets`            | Yes      | —             | Space-separated asset paths attached to the release, relative to the repository root; globs are expanded                                                         |
+| `working_directory` | No       | `.`           | Directory, relative to the repository root, where the verify scripts and `npm run tauri build` run, and where the install runs when `install_directory` is empty |
+| `install_directory` | No       | `''`          | Directory, relative to the repository root, where the install and `npm rebuild` run; `working_directory` is used when empty (e.g. the root of an npm workspace)  |
+| `runner`            | No       | `self-hosted` | Runner that all jobs run on                                                                                                                                      |
+| `rebuild_packages`  | No       | `''`          | Space-separated package names passed to `npm rebuild` after the install, so their install scripts run (e.g. a native addon's binding file)                       |
 
 **Secrets:**
 
